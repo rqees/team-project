@@ -77,6 +77,8 @@ Team Member Signatures:
 Navdeep-Singh Gill
 
 Winston Feng
+
+Dohyeon Nam
 <!-- Insert your names here -->
 
 Date: October 15, 2025

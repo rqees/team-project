@@ -19,6 +19,14 @@ The readme should include information such as:
 - information about the API(s) that your project uses 
 - screenshots or animations demonstrating current functionality
 
+# Proposed Entities
+For the whole project:
+-User
+
+For Use Case 6: Summary Statistics
+-SummaryReport: Computed summary results as a report
+-SummaryMetrics: Stores computed statistics
+
 By keeping this README up-to-date,
 your team will find it easier to prepare for the final presentation
 at the end of the term.

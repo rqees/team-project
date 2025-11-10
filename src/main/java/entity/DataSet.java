@@ -10,4 +10,17 @@ public class DataSet {
         this.rows = rows;
         this.columns = columns;
     }
+
+    public List<DataRow> getRows() {
+        return rows;
+    }
+
+    public List<Column> getColumns() {
+        return columns;
+    }
+
+    public void setCell(String value, int row, int column) {
+        this.rows.get(row).setCell(value, column);
+        this.columns.get(column).setCell(value, row);
+    }
 }

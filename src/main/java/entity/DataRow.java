@@ -13,7 +13,7 @@ public class DataRow {
         return cells;
     }
 
-    public void setCell(String value, int index) {
+    protected void setCell(String value, int index) {
         this.cells.set(index, value);
     }
 }

@@ -1,12 +1,10 @@
-package usecase;
+package use_case.cleaner;
 
 import entity.DataSet;
 import entity.DataRow;
-import entity.Column;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.SimpleTimeZone;
 
 public class DataCleaner {
     private final DataSet dataSet;
@@ -17,6 +15,10 @@ public class DataCleaner {
 
     // edit a single cell
     public void editCell(int rowIndex, int colIndex, String newValue) {
+
+        // validates
+
+
         dataSet.setCell(newValue, rowIndex, colIndex);
     }
 
@@ -40,6 +42,8 @@ public class DataCleaner {
 
         return missingCells;
     }
+
+    // fill
 
     // helper to identify missing cells
     private boolean isMissing(String s) {

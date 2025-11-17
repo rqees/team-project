@@ -12,6 +12,7 @@ public class Column {
     }
 
     public List<String> getCells() {
+
         return cells;
     }
 

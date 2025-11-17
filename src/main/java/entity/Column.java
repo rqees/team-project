@@ -6,10 +6,12 @@ public class Column {
     private final List<String> cells;
 
     public Column(List<String> cells) {
+
         this.cells = cells;
     }
 
     public List<String> getCells() {
+
         return cells;
     }
 

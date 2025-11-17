@@ -75,7 +75,6 @@ public class DataSetTableView extends JFrame {
             return;
         }
 
-        // Clear existing data
         tableModel.setRowCount(0);
         tableModel.setColumnCount(0);
 
@@ -90,19 +89,16 @@ public class DataSetTableView extends JFrame {
             return;
         }
 
-        // Set column headers (using generic names)
         int numColumns = columns.size();
         for (int i = 0; i < numColumns; i++) {
             tableModel.addColumn("Column " + (i + 1));
         }
 
-        // Add rows
         for (DataRow row : rows) {
             List<String> cells = row.getCells();
             tableModel.addRow(cells.toArray(new String[0]));
         }
 
-        // Auto-resize columns to fit content
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(DEFAULT_COLUMN_WIDTH);
         }
@@ -110,10 +106,9 @@ public class DataSetTableView extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // Create and show the GUI with sample data
+
             DataSetTableView view = new DataSetTableView();
 
-            // Create sample data
             java.util.List<DataRow> rows = java.util.Arrays.asList(
                     new DataRow(java.util.Arrays.asList("John", "25", "Engineer", "New York")),
                     new DataRow(java.util.Arrays.asList("Jane", "30", "Doctor", "Boston")),

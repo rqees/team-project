@@ -3,6 +3,7 @@ package view;
 import entity.DataSet;
 import entity.DataRow;
 import entity.Column;
+import entity.DataType;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -118,10 +119,10 @@ public class DataSetTableView extends JFrame {
             );
 
             java.util.List<Column> columns = java.util.Arrays.asList(
-                    new Column(java.util.Arrays.asList("John", "Jane", "Bob", "Alice", "Charlie")),
-                    new Column(java.util.Arrays.asList("25", "30", "28", "32", "27")),
-                    new Column(java.util.Arrays.asList("Engineer", "Doctor", "Teacher", "Designer", "Developer")),
-                    new Column(java.util.Arrays.asList("New York", "Boston", "Chicago", "Seattle", "Austin"))
+                    new Column(java.util.Arrays.asList("John", "Jane", "Bob", "Alice", "Charlie"), DataType.CATEGORICAL, "Names"),
+                    new Column(java.util.Arrays.asList("25", "30", "28", "32", "27"), DataType.NUMERIC, "Age"),
+                    new Column(java.util.Arrays.asList("Engineer", "Doctor", "Teacher", "Designer", "Developer"), DataType.CATEGORICAL, "Occupation"),
+                    new Column(java.util.Arrays.asList("New York", "Boston", "Chicago", "Seattle", "Austin"), DataType.CATEGORICAL, "Location")
             );
 
             DataSet sampleData = new DataSet(rows, columns);

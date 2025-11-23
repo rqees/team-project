@@ -2,6 +2,7 @@ package use_case.load_csv;
 
 import entity.Column;
 import entity.DataRow;
+import entity.DataSet;
 import entity.DataType;
 
 import java.time.LocalDate;
@@ -13,9 +14,11 @@ import java.util.List;
 
 public class LoadInteractor implements LoadInputBoundary {
     private final LoadOutputBoundary loadPresenter;
+    private final TableGatewayBoundary tableGateway;
 
-    public LoadInteractor(LoadOutputBoundary loadPresenter) {
+    public LoadInteractor(LoadOutputBoundary loadPresenter,  TableGatewayBoundary tableGateway) {
         this.loadPresenter = loadPresenter;
+        this.tableGateway = tableGateway;
     }
 
     @Override
@@ -27,6 +30,8 @@ public class LoadInteractor implements LoadInputBoundary {
             List<String> lines = loadInputData.getLines();
             List<DataRow> rows = getRows(lines);
             List<Column> columns = getColumns(lines);
+            DataSet table = new DataSet(rows, columns);
+            tableGateway.save(table);
         }
     }
 

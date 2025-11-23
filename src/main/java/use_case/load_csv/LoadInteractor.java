@@ -2,7 +2,11 @@ package use_case.load_csv;
 
 import entity.Column;
 import entity.DataRow;
+import entity.DataType;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,30 +67,52 @@ public class LoadInteractor implements LoadInputBoundary {
         // Create Column objects with guessed datatype
         List<Column> columns = new ArrayList<>();
         for (List<String> cells : columnCells) {
-//            DataType type = guessDataType(cells);
-            columns.add(new Column(cells, ));
+            DataType type = guessDataType(cells);
+            columns.add(new Column(cells, type));
         }
         return columns;
     }
 
-//    private static DataType guessDataType(List<String> cells) {
-//        boolean allNumeric = true;
-//        boolean allBoolean = true;
-//
-//        for (String cell : cells) {
-//            String value = cell.trim();
-//
-//            if (!value.matches("-?\\d+(\\.\\d+)?")) {
-//                allNumeric = false;
-//            }
-//            if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
-//                allBoolean = false;
-//            }
-//        }
-//
-//        if (allNumeric) return DataType.NUMERIC;
-//        if (allBoolean) return DataType.BOOLEAN;
-//        // Could extend to DATE detection here
-//        return DataType.CATEGORICAL;
-//    }
+    private static DataType guessDataType(List<String> cells) {
+        int numNumeric = 0;
+        int numBoolean = 0;
+        int numDate = 0;
+        int numCategorical = 0;
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (String cell : cells) {
+            String value = cell.trim();
+
+            if (value.matches("-?\\d+(\\.\\d+)?")) {
+                numNumeric += 1;
+            }
+
+            else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+                numBoolean += 1;
+            }
+
+            else if (!value.isEmpty()) {
+                try {
+                    LocalDate.parse(value, dateFormatter);
+                    numDate += 1;
+                } catch (DateTimeParseException ignored) {}
+            }
+
+            else {
+                numCategorical += 1;
+            }
+        }
+
+        if (numNumeric >= numBoolean && numNumeric >= numDate && numNumeric >= numCategorical) {
+            return DataType.NUMERIC;
+        }
+        if (numBoolean >= numDate &&  numBoolean >= numCategorical) {
+            return DataType.BOOLEAN;
+        }
+        if (numDate >= numCategorical) {
+            return DataType.DATE;
+        }
+        return DataType.CATEGORICAL;
+    }
 }

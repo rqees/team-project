@@ -3,6 +3,7 @@ package use_case.visualization;
 import entity.Column;
 import entity.DataRow;
 import entity.DataSet;
+import entity.DataType;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -48,15 +49,15 @@ class GetAvailableVisualizationsInteractorTest {
     private DataSet buildTestDataSet() {
         // Column 0: numeric
         List<String> col0Cells = Arrays.asList("1.0", "2.5", "3.0");
-        Column col0 = new Column(col0Cells);
+        Column col0 = new Column(col0Cells, DataType.NUMERIC, "numbers");
 
         // Column 1: categorical
         List<String> col1Cells = Arrays.asList("A", "B", "A");
-        Column col1 = new Column(col1Cells);
+        Column col1 = new Column(col1Cells, DataType.CATEGORICAL, "Category");
 
         // Column 2: numeric
         List<String> col2Cells = Arrays.asList("10", "20", "15");
-        Column col2 = new Column(col2Cells);
+        Column col2 = new Column(col2Cells, DataType.NUMERIC, "Integers");
 
         List<Column> columns = Arrays.asList(col0, col1, col2);
 

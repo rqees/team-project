@@ -68,7 +68,7 @@ public class LoadInteractor implements LoadInputBoundary {
         List<Column> columns = new ArrayList<>();
         for (List<String> cells : columnCells) {
             DataType type = guessDataType(cells);
-            columns.add(new Column(cells, type));
+            columns.add(new Column(cells, type, cells.get(0)));
         }
         return columns;
     }

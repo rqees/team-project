@@ -13,7 +13,19 @@ public class SummaryMetrics {
         this.metric_value = metric_value;
     }
 
-    public double getMean() {
-        return  metric_value;
+    public double getMetric_value() {
+        return metric_value;
+    }
+
+    public int getSummary_id() {
+        return summary_id;
+    }
+
+    public String getMetric_name() {
+        return metric_name;
+    }
+
+    public DataSubsetSpec getSelected_subset() {
+        return selected_subset;
     }
 }

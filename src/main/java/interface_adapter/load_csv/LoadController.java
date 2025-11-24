@@ -20,17 +20,20 @@ public class LoadController {
     public void execute(File file) {
         List<String> lines = new ArrayList<>();
         boolean failed;
+        String errorMessage;
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
                 lines.add(line);
             }
             failed = false;
+            errorMessage = "";
         } catch (IOException ex) {
             failed = true;
+            errorMessage = ex.getMessage();
         }
 
-        final LoadInputData loadInputData = new LoadInputData(lines, failed);
+        final LoadInputData loadInputData = new LoadInputData(lines, failed, errorMessage);
         csvLoadUseCaseInteractor.execute(loadInputData);
     }
 }

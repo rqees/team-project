@@ -24,7 +24,7 @@ public class LoadInteractor implements LoadInputBoundary {
     @Override
     public void execute(LoadInputData loadInputData) {
         if (loadInputData.isFailed()) {
-
+            loadPresenter.prepareFail(loadInputData.getErrorMessage());
         }
         else {
             List<String> lines = loadInputData.getLines();
@@ -32,6 +32,7 @@ public class LoadInteractor implements LoadInputBoundary {
             List<Column> columns = getColumns(lines);
             DataSet table = new DataSet(rows, columns);
             tableGateway.save(table);
+            loadPresenter.prepareSuccess();
         }
     }
 

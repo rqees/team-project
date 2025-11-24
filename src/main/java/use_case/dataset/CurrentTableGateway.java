@@ -1,8 +1,8 @@
-package use_case.load_csv;
+package use_case.dataset;
 
 import entity.DataSet;
 
-public interface TableGatewayBoundary {
+public interface CurrentTableGateway {
     void save(DataSet table);
     DataSet load();
 }

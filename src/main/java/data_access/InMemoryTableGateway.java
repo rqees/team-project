@@ -1,9 +1,9 @@
 package data_access;
 
 import entity.DataSet;
-import use_case.load_csv.TableGatewayBoundary;
+import use_case.dataset.CurrentTableGateway;
 
-public class InMemoryTableGateway implements TableGatewayBoundary {
+public class InMemoryTableGateway implements CurrentTableGateway {
     private DataSet table;
 
     @Override

@@ -4,6 +4,7 @@ import entity.Column;
 import entity.DataRow;
 import entity.DataSet;
 import entity.DataType;
+import use_case.dataset.CurrentTableGateway;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -14,9 +15,9 @@ import java.util.List;
 
 public class LoadInteractor implements LoadInputBoundary {
     private final LoadOutputBoundary loadPresenter;
-    private final TableGatewayBoundary tableGateway;
+    private final CurrentTableGateway tableGateway;
 
-    public LoadInteractor(LoadOutputBoundary loadPresenter,  TableGatewayBoundary tableGateway) {
+    public LoadInteractor(LoadOutputBoundary loadPresenter,  CurrentTableGateway tableGateway) {
         this.loadPresenter = loadPresenter;
         this.tableGateway = tableGateway;
     }

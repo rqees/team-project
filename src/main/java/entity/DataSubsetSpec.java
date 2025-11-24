@@ -24,6 +24,4 @@ public class DataSubsetSpec {
     public List<Integer> getRowIndices() {
         return rowIndices;
     }
-
-
 }

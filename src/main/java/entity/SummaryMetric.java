@@ -1,7 +1,5 @@
 package entity;
 
-import use_case.statistics.MetricType;
-
 public class SummaryMetric {
     private final MetricType metric_type;
     private final DataSubsetSpec selected_subset;

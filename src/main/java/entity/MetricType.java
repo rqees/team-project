@@ -1,4 +1,4 @@
-package use_case.statistics;
+package entity;
 
 public enum MetricType {
     MEAN,

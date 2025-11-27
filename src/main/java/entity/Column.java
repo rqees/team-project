@@ -5,7 +5,7 @@ import java.util.List;
 public class Column {
     private final List<String> cells;
     private final DataType datatype;
-    private final String header;
+    private String header;
 
     public Column(List<String> cells, DataType datatype, String header) {
         this.cells = cells;
@@ -24,6 +24,10 @@ public class Column {
 
     public String getHeader() {
         return header;
+    }
+
+    public void setHeader(String newHeader) {
+        this.header = newHeader;
     }
 
     protected void setCell(String value, int index) {

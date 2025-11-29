@@ -7,5 +7,8 @@ public enum MetricType {
     MIN,
     MAX,
     COUNT,
-    STANDARD_DEVIATION
+    STANDARD_DEVIATION,
+    OUTLIERS,
+    HEATMAP,
+    CORRELATION_MATRIX
 }

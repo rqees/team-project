@@ -1,11 +1,11 @@
 package view;
 
-import entity.Column;
-import entity.DataRow;
-import entity.DataSet;
 import interface_adapter.search.SearchController;
 import interface_adapter.search.SearchState;
 import interface_adapter.search.SearchViewModel;
+import interface_adapter.table.TableController;
+import interface_adapter.table.TableState;
+import interface_adapter.table.TableViewModel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,7 +13,6 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.List;
 
 /**
  * Main table view for the Data Analysis Program.
@@ -32,7 +31,13 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JTable dataTable;
     private DefaultTableModel tableModel;
     private JScrollPane tableScrollPane;
-    private DataSet currentDataSet;
+
+    private JMenuBar menuBar;
+    private JMenu importMenu;
+    private JMenu saveMenu;
+    private JMenu visualizationMenu;
+    private JPanel statsPanel;
+    private JTextArea statsTextArea;
 
     private JTextField searchField;
     private JButton searchButton;
@@ -45,9 +50,15 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private SearchController searchController;
     private final SearchViewModel searchViewModel;
 
-    public DataSetTableView(SearchViewModel searchViewModel) {
+    private TableController tableController;
+    private final TableViewModel tableViewModel;
+
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
+
+        this.tableViewModel = tableViewModel;
+        this.tableViewModel.addPropertyChangeListener(this);
 
         initializeComponents();
         layoutComponents();
@@ -58,7 +69,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Read-only for now
+                return false;
             }
         };
 
@@ -100,22 +111,66 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         zoomLabel = new JLabel("100%");
         zoomLabel.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
         zoomLabel.setPreferredSize(new Dimension(45, 25));
+
+        menuBar = new JMenuBar();
+        menuBar.setBackground(new Color(240, 240, 245));
+        menuBar.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+
+        importMenu = new JMenu("Import");
+        importMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+        JMenuItem loadCSVItem = new JMenuItem("Load from CSV");
+        loadCSVItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        JMenuItem kaggleItem = new JMenuItem("Kaggle");
+        kaggleItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        importMenu.add(loadCSVItem);
+        importMenu.add(kaggleItem);
+
+        saveMenu = new JMenu("Save");
+        saveMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+
+        visualizationMenu = new JMenu("Visualization");
+        visualizationMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+        JMenuItem placeholder1Item = new JMenuItem("Placeholder1");
+        placeholder1Item.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        JMenuItem placeholder2Item = new JMenuItem("Placeholder2");
+        placeholder2Item.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        visualizationMenu.add(placeholder1Item);
+        visualizationMenu.add(placeholder2Item);
+
+        menuBar.add(importMenu);
+        menuBar.add(saveMenu);
+        menuBar.add(visualizationMenu);
+
+        statsTextArea = new JTextArea(10, 20);
+        statsTextArea.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        statsTextArea.setEditable(false);
+        statsTextArea.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+
+        statsPanel = new JPanel(new BorderLayout(5, 5));
+        statsPanel.setBorder(BorderFactory.createTitledBorder("Summary Statistics"));
+        JScrollPane statsScrollPane = new JScrollPane(statsTextArea);
+        statsPanel.add(statsScrollPane, BorderLayout.CENTER);
+        statsPanel.setPreferredSize(new Dimension(250, 0));
     }
 
     private void layoutComponents() {
         setLayout(new BorderLayout(10, 10));
 
-        // Top panel - Title
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
         topPanel.setBackground(new Color(240, 240, 245));
 
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setBackground(new Color(240, 240, 245));
+
         JLabel titleLabel = new JLabel("Data Analysis Platform");
         titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 24));
         titleLabel.setForeground(new Color(40, 40, 80));
-        topPanel.add(titleLabel, BorderLayout.WEST);
+        leftPanel.add(titleLabel);
+        leftPanel.add(menuBar);
 
-        // Search panel
+        topPanel.add(leftPanel, BorderLayout.WEST);
+
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         searchPanel.setBackground(new Color(240, 240, 245));
         searchPanel.add(new JLabel("Search: "));
@@ -123,17 +178,15 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         searchPanel.add(searchButton);
         topPanel.add(searchPanel, BorderLayout.EAST);
 
-        // Center panel - Table with border
-        JPanel centerPanel = new JPanel(new BorderLayout());
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
         centerPanel.setBorder(new EmptyBorder(0, 15, 10, 15));
         centerPanel.add(tableScrollPane, BorderLayout.CENTER);
+        centerPanel.add(statsPanel, BorderLayout.EAST);
 
-        // Bottom panel
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
         bottomPanel.setBackground(new Color(240, 240, 245));
 
-        // Zoom controls panel (bottom right)
         JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         zoomPanel.setBackground(new Color(240, 240, 245));
         zoomPanel.add(new JLabel("Zoom: "));
@@ -180,7 +233,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private void performSearch() {
         String searchTerm = searchField.getText().trim();
 
-        // Get current table data
         int rowCount = dataTable.getRowCount();
         int colCount = dataTable.getColumnCount();
         String[][] tableData = new String[rowCount][colCount];
@@ -192,17 +244,14 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
 
-        // Get current selection to start search from there
         int startRow = dataTable.getSelectedRow();
         int startCol = dataTable.getSelectedColumn();
 
         if (startRow == -1) startRow = 0;
         if (startCol == -1) startCol = -1;
 
-        // Delegate to controller
         searchController.execute(searchTerm, tableData, startRow, startCol);
     }
-
 
     private void updateTableZoom() {
         dataTable.setFont(new Font(FONT_NAME, Font.PLAIN, currentFontSize));
@@ -221,40 +270,16 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         dataTable.repaint();
     }
 
-    /**
-     * Display a DataSet in the table format.
-     */
-    public void displayDataSet(DataSet dataSet) {
-        if (dataSet == null) {
-            JOptionPane.showMessageDialog(this,
-                    "No dataset to display",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        this.currentDataSet = dataSet;
+    private void displayTableData(String[] headers, String[][] rowData) {
         tableModel.setRowCount(0);
         tableModel.setColumnCount(0);
 
-        List<Column> columns = dataSet.getColumns();
-        List<DataRow> rows = dataSet.getRows();
-
-        if (columns.isEmpty() || rows.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Dataset is empty",
-                    "Warning",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
+        for (String header : headers) {
+            tableModel.addColumn(header);
         }
 
-        for (Column column : columns) {
-            tableModel.addColumn(column.getHeader());
-        }
-
-        for (DataRow row : rows) {
-            List<String> cells = row.getCells();
-            tableModel.addRow(cells.toArray(new String[0]));
+        for (String[] row : rowData) {
+            tableModel.addRow(row);
         }
 
         int scaledWidth = (int) (DEFAULT_COLUMN_WIDTH * (currentFontSize / (double) DEFAULT_FONT_SIZE));
@@ -266,22 +291,38 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
         if (evt.getPropertyName().equals("state")) {
-            final SearchState state = (SearchState) evt.getNewValue();
+            Object newValue = evt.getNewValue();
 
-            if (state.isFound()) {
-                // Highlight the found cell
-                int row = state.getRow();
-                int col = state.getColumn();
+            // Handle SearchState
+            if (newValue instanceof SearchState) {
+                final SearchState state = (SearchState) newValue;
 
-                dataTable.setRowSelectionInterval(row, row);
-                dataTable.setColumnSelectionInterval(col, col);
-                dataTable.scrollRectToVisible(dataTable.getCellRect(row, col, true));
-            } else if (state.getErrorMessage() != null) {
-                // Show error message
-                JOptionPane.showMessageDialog(this,
-                        state.getErrorMessage(),
-                        "Search",
-                        JOptionPane.INFORMATION_MESSAGE);
+                if (state.isFound()) {
+                    int row = state.getRow();
+                    int col = state.getColumn();
+
+                    dataTable.setRowSelectionInterval(row, row);
+                    dataTable.setColumnSelectionInterval(col, col);
+                    dataTable.scrollRectToVisible(dataTable.getCellRect(row, col, true));
+                } else if (state.getErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getErrorMessage(),
+                            "Search",
+                            JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+            // Handle TableState
+            else if (newValue instanceof TableState) {
+                final TableState state = (TableState) newValue;
+
+                if (state.getErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getErrorMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } else {
+                    displayTableData(state.getColumnHeaders(), state.getRowData());
+                }
             }
         }
     }
@@ -292,5 +333,31 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     public void setSearchController(SearchController searchController) {
         this.searchController = searchController;
+    }
+
+    public void setTableController(TableController tableController) {
+        this.tableController = tableController;
+    }
+
+    public void setImportController(Object controller) {
+        // TODO: implement when ImportController is created
+    }
+
+    public void setSaveController(Object controller) {
+        // TODO: implement when SaveController is created
+    }
+
+    public void setVisualizationController(Object controller) {
+        // TODO: implement when VisualizationController is created
+    }
+
+    public void updateSummaryStats(String stats) {
+        statsTextArea.setText(stats);
+    }
+
+    public void loadTable() {
+        if (tableController != null) {
+            tableController.displayCurrentTable();
+        }
     }
 }

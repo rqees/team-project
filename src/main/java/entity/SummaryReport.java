@@ -3,31 +3,31 @@ package entity;
 import java.util.List;
 
 public class SummaryReport {
-    private final int summary_id;
-    private final String report_name;
-    private final DataSubsetSpec selected_subset;
-    private final List<SummaryMetric> summary_metrics;
+    private final int summaryId;
+    private final String reportName;
+    private final DataSubsetSpec selectedSubset;
+    private final List<SummaryMetric> summaryMetrics;
 
     public SummaryReport(int summary_id, String report_name, DataSubsetSpec selected_subset,  List<SummaryMetric> summary_metrics) {
-        this.summary_id = summary_id;
-        this.report_name = report_name;
-        this.selected_subset = selected_subset;
-        this.summary_metrics = summary_metrics;
+        this.summaryId = summary_id;
+        this.reportName = report_name;
+        this.selectedSubset = selected_subset;
+        this.summaryMetrics = summary_metrics;
     }
 
-    public int getSummary_id() {
-        return summary_id;
+    public int getSummaryId() {
+        return summaryId;
     }
 
-    public String getReport_name() {
-        return report_name;
+    public String getReportName() {
+        return reportName;
     }
 
-    public DataSubsetSpec getSelected_subset() {
-        return selected_subset;
+    public DataSubsetSpec getSelectedSubset() {
+        return selectedSubset;
     }
 
-    public List<SummaryMetric> getSummary_metrics() {
-        return summary_metrics;
+    public List<SummaryMetric> getSummaryMetrics() {
+        return summaryMetrics;
     }
 }

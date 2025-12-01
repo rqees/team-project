@@ -1,5 +1,7 @@
 package view;
 
+import interface_adapter.load_csv.LoadController;
+import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
 import interface_adapter.search.SearchState;
 import interface_adapter.search.SearchViewModel;
@@ -7,20 +9,13 @@ import interface_adapter.table.TableController;
 import interface_adapter.table.TableState;
 import interface_adapter.table.TableViewModel;
 
-// >>> visualization
-import interface_adapter.visualization.VisualizationController;
-import interface_adapter.visualization.VisualizationState;
-import interface_adapter.visualization.VisualizationViewModel;
-import org.knowm.xchart.XChartPanel;
-import org.knowm.xchart.XYChart;
-// <<< visualization
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 
 /**
  * Main table view for the Data Analysis Program.
@@ -42,17 +37,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private JMenuBar menuBar;
     private JMenu importMenu;
+    private JMenuItem loadCSVItem;
+    private JMenuItem kaggleItem;
     private JMenu saveMenu;
     private JMenu visualizationMenu;
     private JPanel statsPanel;
     private JTextArea statsTextArea;
-
-    // >>> visualization
-    /** Panel that holds the current visualization (XChart or heatmap). */
-    private JPanel visualizationPanel;
-    /** XChartPanel used to render XYChart charts. */
-    private XChartPanel<XYChart> chartPanel;
-    // <<< visualization
 
     private JTextField searchField;
     private JButton searchButton;
@@ -68,24 +58,17 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private TableController tableController;
     private final TableViewModel tableViewModel;
 
-    // >>> visualization
-    private VisualizationController visualizationController;
-    private final VisualizationViewModel visualizationViewModel;
-    // <<< visualization
+    private LoadController loadController;
+    private final LoadViewModel loadViewModel;
 
-    // >>> visualization: updated constructor to accept VisualizationViewModel
-    public DataSetTableView(SearchViewModel searchViewModel,
-                            TableViewModel tableViewModel,
-                            VisualizationViewModel visualizationViewModel) {
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
         this.tableViewModel = tableViewModel;
         this.tableViewModel.addPropertyChangeListener(this);
 
-        this.visualizationViewModel = visualizationViewModel;
-        this.visualizationViewModel.addPropertyChangeListener(this);
-        // <<< visualization
+        this.loadViewModel = loadViewModel;
 
         initializeComponents();
         layoutComponents();
@@ -145,9 +128,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         importMenu = new JMenu("Import");
         importMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
-        JMenuItem loadCSVItem = new JMenuItem("Load from CSV");
+        loadCSVItem = new JMenuItem("Load from CSV");
         loadCSVItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
-        JMenuItem kaggleItem = new JMenuItem("Kaggle");
+        kaggleItem = new JMenuItem("Load from Kaggle");
         kaggleItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
         importMenu.add(loadCSVItem);
         importMenu.add(kaggleItem);
@@ -178,12 +161,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         JScrollPane statsScrollPane = new JScrollPane(statsTextArea);
         statsPanel.add(statsScrollPane, BorderLayout.CENTER);
         statsPanel.setPreferredSize(new Dimension(250, 0));
-
-        // >>> visualization: create panel that will hold the chart / heatmap
-        visualizationPanel = new JPanel(new BorderLayout());
-        visualizationPanel.setBorder(BorderFactory.createTitledBorder("Visualization"));
-        visualizationPanel.setPreferredSize(new Dimension(0, 250)); // height at bottom
-        // <<< visualization
     }
 
     private void layoutComponents() {
@@ -216,7 +193,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         centerPanel.add(tableScrollPane, BorderLayout.CENTER);
         centerPanel.add(statsPanel, BorderLayout.EAST);
 
-        // >>> visualization: add visualization panel at the bottom
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
         bottomPanel.setBackground(new Color(240, 240, 245));
@@ -230,8 +206,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         zoomPanel.add(zoomLabel);
 
         bottomPanel.add(zoomPanel, BorderLayout.EAST);
-        bottomPanel.add(visualizationPanel, BorderLayout.CENTER);
-        // <<< visualization
 
         add(topPanel, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
@@ -262,6 +236,36 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 currentFontSize--;
                 zoomSlider.setValue(currentFontSize);
                 updateTableZoom();
+            }
+        });
+
+        loadCSVItem.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(DataSetTableView.this);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                loadController.execute(file);
+            }
+        });
+
+        kaggleItem.addActionListener(e -> {
+//            TODO implement loadkaggleusecase
+        });
+
+        loadViewModel.addPropertyChangeListener(evt -> {
+            switch (evt.getPropertyName()) {
+                case "errorMessage":
+                    JOptionPane.showMessageDialog(this,
+                            "Error reading file: " + loadViewModel.getErrorMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    break;
+                case "success":
+                    if (loadViewModel.isSuccess()) {
+                        loadTable();
+                    }
+                    break;
             }
         });
     }
@@ -324,20 +328,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
     }
 
-    // >>> visualization: helper to update the chart panel from the ViewModel state
-    private void displayChart(XYChart chart) {
-        visualizationPanel.removeAll();
-
-        if (chart != null) {
-            chartPanel = new XChartPanel<>(chart);
-            visualizationPanel.add(chartPanel, BorderLayout.CENTER);
-        }
-
-        visualizationPanel.revalidate();
-        visualizationPanel.repaint();
-    }
-    // <<< visualization
-
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
         if (evt.getPropertyName().equals("state")) {
@@ -374,22 +364,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     displayTableData(state.getColumnHeaders(), state.getRowData());
                 }
             }
-            // >>> visualization: Handle VisualizationState
-            else if (newValue instanceof VisualizationState) {
-                final VisualizationState state = (VisualizationState) newValue;
-
-                if (state.getErrorMessage() != null) {
-                    JOptionPane.showMessageDialog(this,
-                            state.getErrorMessage(),
-                            "Visualization Error",
-                            JOptionPane.ERROR_MESSAGE);
-                } else {
-                    // For now we support XYChart; heatmap can be added later.
-                    displayChart(state.getXyChart());
-                    // You could also use state.getTitle() to update a label if desired.
-                }
-            }
-            // <<< visualization
         }
     }
 
@@ -405,6 +379,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.tableController = tableController;
     }
 
+    public void setLoadController(LoadController loadController) {
+        this.loadController = loadController;
+    }
+
     public void setImportController(Object controller) {
         // TODO: implement when ImportController is created
     }
@@ -413,11 +391,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         // TODO: implement when SaveController is created
     }
 
-    // >>> visualization
-    public void setVisualizationController(VisualizationController controller) {
-        this.visualizationController = controller;
+    public void setVisualizationController(Object controller) {
+        // TODO: implement when VisualizationController is created
     }
-    // <<< visualization
 
     public void updateSummaryStats(String stats) {
         statsTextArea.setText(stats);

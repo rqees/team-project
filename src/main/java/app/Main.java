@@ -13,6 +13,7 @@ public class Main {
                     .addDataSetTableView()
                     .addSearchUseCase()
                     .addTableDisplayUseCase()
+                    .addLoadUseCase()
                     .loadSampleData()  // Load sample data through builder
                     .build();
 

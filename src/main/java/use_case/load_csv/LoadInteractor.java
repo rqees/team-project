@@ -29,21 +29,13 @@ public class LoadInteractor implements LoadInputBoundary {
         }
         else {
             List<String> lines = loadInputData.getLines();
-            List<DataRow> rows = getRows(lines);
             List<Column> columns = getColumns(lines);
+            List<DataRow> rows = getRows(lines);
             DataSet table = new DataSet(rows, columns);
+
             tableGateway.save(table);
             loadPresenter.prepareSuccess();
         }
-    }
-
-    private static List<DataRow> getRows(List<String> lines) {
-        List<DataRow> rows = new ArrayList<>();
-        for (String line : lines) {
-            List<String> cells = Arrays.asList(line.split(",", -1));
-            rows.add(new DataRow(cells));
-        }
-        return rows;
     }
 
     private static List<Column> getColumns(List<String> lines) {
@@ -60,6 +52,9 @@ public class LoadInteractor implements LoadInputBoundary {
             columnCells.add(new ArrayList<>());
         }
 
+        String[] headers = lines.get(0).split(",", -1);
+        lines.remove(0);
+
         for (String line : lines) {
             String[] cells = line.split(",", -1);
             for (int i = 0; i < columnCount; i++) {
@@ -73,9 +68,9 @@ public class LoadInteractor implements LoadInputBoundary {
 
         // Create Column objects with guessed datatype
         List<Column> columns = new ArrayList<>();
-        for (List<String> cells : columnCells) {
-            DataType type = guessDataType(cells);
-            columns.add(new Column(cells, type, cells.get(0)));
+        for (int i = 0; i < columnCells.size(); i++){
+            DataType type = guessDataType(columnCells.get(i));
+            columns.add(new Column(columnCells.get(i), type, headers[i]));
         }
         return columns;
     }
@@ -121,5 +116,14 @@ public class LoadInteractor implements LoadInputBoundary {
             return DataType.DATE;
         }
         return DataType.CATEGORICAL;
+    }
+
+    private static List<DataRow> getRows(List<String> lines) {
+        List<DataRow> rows = new ArrayList<>();
+        for (String line : lines) {
+            List<String> cells = Arrays.asList(line.split(",", -1));
+            rows.add(new DataRow(cells));
+        }
+        return rows;
     }
 }

@@ -21,16 +21,36 @@ public class LoadController {
         List<String> lines = new ArrayList<>();
         boolean failed;
         String errorMessage;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                lines.add(line);
+
+        String fileName = file.getName();
+        int dotIndex = fileName.lastIndexOf('.');
+        String extension = "";
+        if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+            extension = fileName.substring(dotIndex + 1);
+        }
+
+        if (extension.equals("csv") || extension.equals("txt")) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    lines.add(line);
+                }
+                if (lines.isEmpty()) {
+                    failed = true;
+                    errorMessage = "File is empty";
+                }
+                else {
+                    failed = false;
+                    errorMessage = "";
+                }
+            } catch (IOException ex) {
+                failed = true;
+                errorMessage = ex.getMessage();
             }
-            failed = false;
-            errorMessage = "";
-        } catch (IOException ex) {
+        }
+        else {
             failed = true;
-            errorMessage = ex.getMessage();
+            errorMessage = "Incorrect file format";
         }
 
         final LoadInputData loadInputData = new LoadInputData(lines, failed, errorMessage);

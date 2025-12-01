@@ -1,5 +1,7 @@
 package view;
 
+import interface_adapter.load_csv.LoadController;
+import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
 import interface_adapter.search.SearchState;
 import interface_adapter.search.SearchViewModel;
@@ -13,6 +15,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 
 /**
  * Main table view for the Data Analysis Program.
@@ -34,6 +37,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private JMenuBar menuBar;
     private JMenu importMenu;
+    private JMenuItem loadCSVItem;
+    private JMenuItem kaggleItem;
     private JMenu saveMenu;
     private JMenu visualizationMenu;
     private JPanel statsPanel;
@@ -53,12 +58,17 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private TableController tableController;
     private final TableViewModel tableViewModel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel) {
+    private LoadController loadController;
+    private final LoadViewModel loadViewModel;
+
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
         this.tableViewModel = tableViewModel;
         this.tableViewModel.addPropertyChangeListener(this);
+
+        this.loadViewModel = loadViewModel;
 
         initializeComponents();
         layoutComponents();
@@ -118,9 +128,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         importMenu = new JMenu("Import");
         importMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
-        JMenuItem loadCSVItem = new JMenuItem("Load from CSV");
+        loadCSVItem = new JMenuItem("Load from CSV");
         loadCSVItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
-        JMenuItem kaggleItem = new JMenuItem("Kaggle");
+        kaggleItem = new JMenuItem("Load from Kaggle");
         kaggleItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
         importMenu.add(loadCSVItem);
         importMenu.add(kaggleItem);
@@ -226,6 +236,36 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 currentFontSize--;
                 zoomSlider.setValue(currentFontSize);
                 updateTableZoom();
+            }
+        });
+
+        loadCSVItem.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showOpenDialog(DataSetTableView.this);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                loadController.execute(file);
+            }
+        });
+
+        kaggleItem.addActionListener(e -> {
+//            TODO implement loadkaggleusecase
+        });
+
+        loadViewModel.addPropertyChangeListener(evt -> {
+            switch (evt.getPropertyName()) {
+                case "errorMessage":
+                    JOptionPane.showMessageDialog(this,
+                            "Error reading file: " + loadViewModel.getErrorMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    break;
+                case "success":
+                    if (loadViewModel.isSuccess()) {
+                        loadTable();
+                    }
+                    break;
             }
         });
     }
@@ -337,6 +377,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     public void setTableController(TableController tableController) {
         this.tableController = tableController;
+    }
+
+    public void setLoadController(LoadController loadController) {
+        this.loadController = loadController;
     }
 
     public void setImportController(Object controller) {

@@ -3,6 +3,9 @@ package app;
 import data_access.InMemoryTableGateway;
 import data_access.SampleDataLoader;
 import interface_adapter.ViewManagerModel;
+import interface_adapter.load_csv.LoadController;
+import interface_adapter.load_csv.LoadPresenter;
+import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
 import interface_adapter.search.SearchPresenter;
 import interface_adapter.search.SearchViewModel;
@@ -10,6 +13,9 @@ import interface_adapter.table.TableController;
 import interface_adapter.table.TablePresenter;
 import interface_adapter.table.TableViewModel;
 import use_case.dataset.CurrentTableGateway;
+import use_case.load_csv.LoadInputBoundary;
+import use_case.load_csv.LoadInteractor;
+import use_case.load_csv.LoadOutputBoundary;
 import use_case.search.SearchInputBoundary;
 import use_case.search.SearchInteractor;
 import use_case.search.SearchOutputBoundary;
@@ -28,17 +34,18 @@ public class DataAnalysisAppBuilder {
     private DataSetTableView dataSetTableView;
     private SearchViewModel searchViewModel;
     private TableViewModel tableViewModel;
-    private CurrentTableGateway tableGateway;
+    private LoadViewModel loadViewModel;
+    private final CurrentTableGateway tableGateway = new InMemoryTableGateway();
 
     public DataAnalysisAppBuilder() {
         cardPanel.setLayout(cardLayout);
-        tableGateway = new InMemoryTableGateway();
     }
 
     public DataAnalysisAppBuilder addDataSetTableView() {
         searchViewModel = new SearchViewModel();
         tableViewModel = new TableViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel);
+        loadViewModel = new LoadViewModel();
+        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel);
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }
@@ -60,6 +67,14 @@ public class DataAnalysisAppBuilder {
 
         final TableController tableController = new TableController(displayInteractor);
         dataSetTableView.setTableController(tableController);
+        return this;
+    }
+
+    public DataAnalysisAppBuilder addLoadUseCase() {
+        final LoadOutputBoundary loadOutputBoundary = new LoadPresenter(loadViewModel);
+        final LoadInputBoundary loadInteractor = new LoadInteractor(loadOutputBoundary, tableGateway);
+        LoadController loadController = new LoadController(loadInteractor);
+        dataSetTableView.setLoadController(loadController);
         return this;
     }
 

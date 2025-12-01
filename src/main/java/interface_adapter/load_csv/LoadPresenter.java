@@ -4,21 +4,19 @@ import use_case.load_csv.LoadOutputBoundary;
 
 public class LoadPresenter implements LoadOutputBoundary {
 
-    public LoadPresenter() {
+    private final LoadViewModel viewModel;
 
+    public LoadPresenter(LoadViewModel viewModel) {
+        this.viewModel = viewModel;
     }
 
     @Override
     public void prepareFail(String errorMessage) {
-        // TODO tell view or viewmodel or whatever to display this fail message
-//        JOptionPane.showMessageDialog(this,
-//                "Error reading file: " + errorMessage,
-//                "Error",
-//                JOptionPane.ERROR_MESSAGE);
+        viewModel.setErrorMessage(errorMessage);
     }
 
     @Override
     public void prepareSuccess() {
-        // TODO file loaded correctly
+        viewModel.setSuccess(true);
     }
 }

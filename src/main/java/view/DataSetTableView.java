@@ -7,6 +7,14 @@ import interface_adapter.table.TableController;
 import interface_adapter.table.TableState;
 import interface_adapter.table.TableViewModel;
 
+// >>> visualization
+import interface_adapter.visualization.VisualizationController;
+import interface_adapter.visualization.VisualizationState;
+import interface_adapter.visualization.VisualizationViewModel;
+import org.knowm.xchart.XChartPanel;
+import org.knowm.xchart.XYChart;
+// <<< visualization
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -39,6 +47,13 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JPanel statsPanel;
     private JTextArea statsTextArea;
 
+    // >>> visualization
+    /** Panel that holds the current visualization (XChart or heatmap). */
+    private JPanel visualizationPanel;
+    /** XChartPanel used to render XYChart charts. */
+    private XChartPanel<XYChart> chartPanel;
+    // <<< visualization
+
     private JTextField searchField;
     private JButton searchButton;
     private JSlider zoomSlider;
@@ -53,12 +68,24 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private TableController tableController;
     private final TableViewModel tableViewModel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel) {
+    // >>> visualization
+    private VisualizationController visualizationController;
+    private final VisualizationViewModel visualizationViewModel;
+    // <<< visualization
+
+    // >>> visualization: updated constructor to accept VisualizationViewModel
+    public DataSetTableView(SearchViewModel searchViewModel,
+                            TableViewModel tableViewModel,
+                            VisualizationViewModel visualizationViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
         this.tableViewModel = tableViewModel;
         this.tableViewModel.addPropertyChangeListener(this);
+
+        this.visualizationViewModel = visualizationViewModel;
+        this.visualizationViewModel.addPropertyChangeListener(this);
+        // <<< visualization
 
         initializeComponents();
         layoutComponents();
@@ -151,6 +178,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         JScrollPane statsScrollPane = new JScrollPane(statsTextArea);
         statsPanel.add(statsScrollPane, BorderLayout.CENTER);
         statsPanel.setPreferredSize(new Dimension(250, 0));
+
+        // >>> visualization: create panel that will hold the chart / heatmap
+        visualizationPanel = new JPanel(new BorderLayout());
+        visualizationPanel.setBorder(BorderFactory.createTitledBorder("Visualization"));
+        visualizationPanel.setPreferredSize(new Dimension(0, 250)); // height at bottom
+        // <<< visualization
     }
 
     private void layoutComponents() {
@@ -183,6 +216,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         centerPanel.add(tableScrollPane, BorderLayout.CENTER);
         centerPanel.add(statsPanel, BorderLayout.EAST);
 
+        // >>> visualization: add visualization panel at the bottom
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
         bottomPanel.setBackground(new Color(240, 240, 245));
@@ -196,6 +230,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         zoomPanel.add(zoomLabel);
 
         bottomPanel.add(zoomPanel, BorderLayout.EAST);
+        bottomPanel.add(visualizationPanel, BorderLayout.CENTER);
+        // <<< visualization
 
         add(topPanel, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
@@ -288,6 +324,20 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
     }
 
+    // >>> visualization: helper to update the chart panel from the ViewModel state
+    private void displayChart(XYChart chart) {
+        visualizationPanel.removeAll();
+
+        if (chart != null) {
+            chartPanel = new XChartPanel<>(chart);
+            visualizationPanel.add(chartPanel, BorderLayout.CENTER);
+        }
+
+        visualizationPanel.revalidate();
+        visualizationPanel.repaint();
+    }
+    // <<< visualization
+
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
         if (evt.getPropertyName().equals("state")) {
@@ -324,6 +374,22 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     displayTableData(state.getColumnHeaders(), state.getRowData());
                 }
             }
+            // >>> visualization: Handle VisualizationState
+            else if (newValue instanceof VisualizationState) {
+                final VisualizationState state = (VisualizationState) newValue;
+
+                if (state.getErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getErrorMessage(),
+                            "Visualization Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } else {
+                    // For now we support XYChart; heatmap can be added later.
+                    displayChart(state.getXyChart());
+                    // You could also use state.getTitle() to update a label if desired.
+                }
+            }
+            // <<< visualization
         }
     }
 
@@ -347,9 +413,11 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         // TODO: implement when SaveController is created
     }
 
-    public void setVisualizationController(Object controller) {
-        // TODO: implement when VisualizationController is created
+    // >>> visualization
+    public void setVisualizationController(VisualizationController controller) {
+        this.visualizationController = controller;
     }
+    // <<< visualization
 
     public void updateSummaryStats(String stats) {
         statsTextArea.setText(stats);

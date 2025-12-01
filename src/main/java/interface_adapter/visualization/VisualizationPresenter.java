@@ -29,28 +29,35 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
 
         if (model instanceof PointPlotModel pointModel) {
             XYChart chart = buildXYChartFromPointModel(pointModel);
-            viewModel.setChart(chart);
-            viewModel.setTitle(pointModel.getTitle());
-            viewModel.setError(null);
+
+            VisualizationState state = new VisualizationState(
+                    chart,
+                    null,
+                    pointModel.getTitle(),
+                    null
+            );
+            viewModel.setState(state);
         }
         else if (model instanceof HeatmapModel heatmapModel) {
-            // For now, we just pass the matrix to the ViewModel.
-            // You can later decide whether to use XChart's HeatMapChart
-            // or render it as a table/colour grid in the View.
             Matrix matrix = heatmapModel.getMatrix();
-            viewModel.setHeatmapMatrix(matrix);
-            viewModel.setTitle(heatmapModel.getTitle());
-            viewModel.setError(null);
+
+            VisualizationState state = new VisualizationState(
+                    null,
+                    matrix,
+                    heatmapModel.getTitle(),
+                    null
+            );
+            viewModel.setState(state);
         }
         else {
-            // Fallback: unknown model type
-            viewModel.setChart(null);
-            viewModel.setHeatmapMatrix(null);
-            viewModel.setTitle("Unsupported visualization type");
-            viewModel.setError("Unsupported VisualizationModel implementation: " + model.getClass().getSimpleName());
+            VisualizationState state = new VisualizationState(
+                    null, null,
+                    "Unsupported visualization",
+                    "Unsupported VisualizationModel implementation: " + model.getClass().getSimpleName()
+            );
+            viewModel.setState(state);
         }
     }
-
     // =========================================================
     // Point-plot → XChart (SCATTER, LINE, BAR, HISTOGRAM)
     // =========================================================

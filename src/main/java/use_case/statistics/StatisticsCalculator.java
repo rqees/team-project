@@ -2,6 +2,7 @@ package use_case.statistics;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Helper class containing pure statistical calculation methods.
@@ -16,19 +17,28 @@ import java.util.List;
  * - Easy to test in isolation
  */
 public class StatisticsCalculator {
-
     /**
      * Calculate the arithmetic mean (average) of a list of values.
+     * Null values are excluded from the calculation.
      *
-     * @param values List of numeric values
-     * @return Mean value, or 0.0 if list is empty
+     * @param values List of numeric values (may contain nulls)
+     * @return Mean value, or 0.0 if no valid values
      */
     public static double calculateMean(List<Double> values) {
         if (values == null || values.isEmpty()) {
             return 0.0;
         }
 
-        return values.stream()
+        // Filter out null values
+        List<Double> nonNullValues = values.stream()
+                .filter(v -> v != null)
+                .collect(Collectors.toList());
+
+        if (nonNullValues.isEmpty()) {
+            return 0.0;
+        }
+
+        return nonNullValues.stream()
                 .mapToDouble(Double::doubleValue)
                 .average()
                 .orElse(0.0);
@@ -37,18 +47,25 @@ public class StatisticsCalculator {
     /**
      * Calculate the median (middle value) of a list of values.
      * For even-sized lists, returns the average of the two middle values.
+     * Null values are excluded from the calculation.
      *
-     * @param values List of numeric values
-     * @return Median value, or 0.0 if list is empty
+     * @param values List of numeric values (may contain nulls)
+     * @return Median value, or 0.0 if no valid values
      */
     public static double calculateMedian(List<Double> values) {
         if (values == null || values.isEmpty()) {
             return 0.0;
         }
 
+        // Filter out null values and sort
         List<Double> sorted = values.stream()
+                .filter(v -> v != null)
                 .sorted()
-                .toList();
+                .collect(Collectors.toList());
+
+        if (sorted.isEmpty()) {
+            return 0.0;
+        }
 
         int size = sorted.size();
         if (size % 2 == 0) {
@@ -63,28 +80,39 @@ public class StatisticsCalculator {
     /**
      * Calculate the sample standard deviation.
      * Uses n-1 in the denominator (Bessel's correction) for sample data.
+     * Null values are excluded from the calculation.
      *
-     * @param values List of numeric values
+     * @param values List of numeric values (may contain nulls)
      * @param mean Pre-calculated mean (for efficiency)
-     * @return Standard deviation, or 0.0 if insufficient data
+     * @return Standard deviation, or 0.0 if insufficient valid data
      */
     public static double calculateStandardDeviation(List<Double> values, double mean) {
-        if (values == null || values.size() <= 1) {
+        if (values == null || values.isEmpty()) {
             return 0.0;
         }
 
-        double sumSquaredDifferences = values.stream()
+        // Filter out null values
+        List<Double> nonNullValues = values.stream()
+                .filter(v -> v != null)
+                .collect(Collectors.toList());
+
+        if (nonNullValues.size() <= 1) {
+            return 0.0;
+        }
+
+        double sumSquaredDifferences = nonNullValues.stream()
                 .mapToDouble(v -> Math.pow(v - mean, 2))
                 .sum();
 
-        return Math.sqrt(sumSquaredDifferences / (values.size() - 1));
+        return Math.sqrt(sumSquaredDifferences / (nonNullValues.size() - 1));
     }
 
     /**
      * Find the minimum value in a list.
+     * Null values are excluded from the calculation.
      *
-     * @param values List of numeric values
-     * @return Minimum value, or 0.0 if list is empty
+     * @param values List of numeric values (may contain nulls)
+     * @return Minimum value, or 0.0 if no valid values
      */
     public static double calculateMin(List<Double> values) {
         if (values == null || values.isEmpty()) {
@@ -92,6 +120,7 @@ public class StatisticsCalculator {
         }
 
         return values.stream()
+                .filter(v -> v != null)
                 .mapToDouble(Double::doubleValue)
                 .min()
                 .orElse(0.0);
@@ -99,9 +128,10 @@ public class StatisticsCalculator {
 
     /**
      * Find the maximum value in a list.
+     * Null values are excluded from the calculation.
      *
-     * @param values List of numeric values
-     * @return Maximum value, or 0.0 if list is empty
+     * @param values List of numeric values (may contain nulls)
+     * @return Maximum value, or 0.0 if no valid values
      */
     public static double calculateMax(List<Double> values) {
         if (values == null || values.isEmpty()) {
@@ -109,9 +139,42 @@ public class StatisticsCalculator {
         }
 
         return values.stream()
+                .filter(v -> v != null)
                 .mapToDouble(Double::doubleValue)
                 .max()
                 .orElse(0.0);
+    }
+
+    /**
+     * Count the number of non-null values in a list.
+     *
+     * @param values List of numeric values (may contain nulls)
+     * @return Count of non-null values
+     */
+    public static long countNonNull(List<Double> values) {
+        if (values == null || values.isEmpty()) {
+            return 0;
+        }
+
+        return values.stream()
+                .filter(v -> v != null)
+                .count();
+    }
+
+    /**
+     * Count the number of null values in a list.
+     *
+     * @param values List of numeric values (may contain nulls)
+     * @return Count of null values (missing data)
+     */
+    public static long countNull(List<Double> values) {
+        if (values == null || values.isEmpty()) {
+            return 0;
+        }
+
+        return values.stream()
+                .filter(v -> v == null)
+                .count();
     }
 
     /**
@@ -147,8 +210,11 @@ public class StatisticsCalculator {
      * Returns a value between -1.0 (perfect negative correlation) and
      * +1.0 (perfect positive correlation).
      *
-     * @param x First variable values
-     * @param y Second variable values
+     * HANDLES MISSING DATA: Uses pairwise deletion.
+     * Only pairs where both X and Y are non-null are included.
+     *
+     * @param x First variable values (may contain nulls)
+     * @param y Second variable values (may contain nulls)
      * @return Correlation coefficient, or 0.0 if calculation not possible
      */
     public static double calculatePearsonCorrelation(List<Double> x, List<Double> y) {
@@ -156,17 +222,32 @@ public class StatisticsCalculator {
             return 0.0;
         }
 
-        int n = x.size();
-        double meanX = calculateMean(x);
-        double meanY = calculateMean(y);
+        // Pairwise deletion: filter out pairs where either value is null
+        List<Double> validX = new ArrayList<>();
+        List<Double> validY = new ArrayList<>();
+
+        for (int i = 0; i < x.size(); i++) {
+            if (x.get(i) != null && y.get(i) != null) {
+                validX.add(x.get(i));
+                validY.add(y.get(i));
+            }
+        }
+
+        if (validX.isEmpty()) {
+            return 0.0;
+        }
+
+        int n = validX.size();
+        double meanX = calculateMean(validX);
+        double meanY = calculateMean(validY);
 
         double numerator = 0.0;
         double sumSquaredDiffX = 0.0;
         double sumSquaredDiffY = 0.0;
 
         for (int i = 0; i < n; i++) {
-            double diffX = x.get(i) - meanX;
-            double diffY = y.get(i) - meanY;
+            double diffX = validX.get(i) - meanX;
+            double diffY = validY.get(i) - meanY;
 
             numerator += diffX * diffY;
             sumSquaredDiffX += diffX * diffX;
@@ -184,8 +265,9 @@ public class StatisticsCalculator {
 
     /**
      * Identify outliers in a dataset using z-score method.
+     * Null values are excluded from outlier detection.
      *
-     * @param values List of numeric values
+     * @param values List of numeric values (may contain nulls)
      * @param threshold Z-score threshold for outlier detection (typically 3.0)
      * @return List of OutlierInfo objects containing index, value, and z-score
      */
@@ -205,7 +287,13 @@ public class StatisticsCalculator {
         }
 
         for (int i = 0; i < values.size(); i++) {
-            double value = values.get(i);
+            Double value = values.get(i);
+
+            // Skip null values - they are not outliers, they are missing data
+            if (value == null) {
+                continue;
+            }
+
             double zScore = calculateZScore(value, mean, stdDev);
 
             if (isOutlier(zScore, threshold)) {

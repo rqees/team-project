@@ -6,17 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Summary Statistics Interactor.
+ * The Summary Statistics Interactor - REFACTORED VERSION
+ *
+ * RESPONSIBILITY: Orchestrate the use case flow only.
+ * All calculations are delegated to StatisticsCalculator.
  */
 public class SummaryStatisticsInteractor implements SummaryStatisticsInputBoundary {
 
     private final SummaryStatisticsDataAccessInterface summaryStatisticsDataAccessObject;
     private final SummaryStatisticsOutputBoundary summaryStatisticsPresenter;
+    private static final double OUTLIER_Z_SCORE_THRESHOLD = 3.0;
 
-    /**
-     * @param dataAccess to access DataSubsetSpec objects
-     * @param presenter to access  objects
-     */
     public SummaryStatisticsInteractor(SummaryStatisticsDataAccessInterface dataAccess,
                                        SummaryStatisticsOutputBoundary presenter) {
         this.summaryStatisticsDataAccessObject = dataAccess;
@@ -26,28 +26,28 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
     @Override
     public void execute(SummaryStatisticsInputData input) {
         try {
-            // Validate input
+            // Step 1: Validate input
             validateInput(input);
 
             final DataSubsetSpec subset = input.getDataSubsetSpec();
 
-            // Validate subset exists and is accessible
+            // Step 2: Validate subset exists and is accessible
             if (!summaryStatisticsDataAccessObject.validateDataSubset(subset)) {
                 summaryStatisticsPresenter.prepareFailView("Invalid or inaccessible data subset");
                 return;
             }
 
-            // Verify dataset exists
+            // Step 3: Verify dataset exists
             final DataSubsetSpec validatedSubset = summaryStatisticsDataAccessObject.getDataSubsetById(subset.getDatasetId());
             if (validatedSubset == null) {
                 summaryStatisticsPresenter.prepareFailView("Dataset not found: " + subset.getDatasetId());
                 return;
             }
 
-            // Calculate all summary metrics
+            // Step 4: Calculate all summary metrics
             List<SummaryMetric> metrics = calculateAllMetrics(subset);
 
-            // Create SummaryReport entity
+            // Step 5: Create SummaryReport entity
             SummaryReport report = new SummaryReport(
                     input.getDataSubsetId(),
                     input.getReportName(),
@@ -55,9 +55,8 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
                     metrics
             );
 
-            // Create and send output data with the report
+            // Step 6: Create and send output data
             SummaryStatisticsOutputData outputData = new SummaryStatisticsOutputData(report);
-
             summaryStatisticsPresenter.prepareSuccessView(outputData);
 
         } catch (IllegalArgumentException e) {
@@ -67,9 +66,10 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         }
     }
 
-    /**
-     * Validates the input data.
-     */
+    // ========================================
+    // VALIDATION (Application Logic)
+    // ========================================
+
     private void validateInput(SummaryStatisticsInputData input) {
         if (input == null) {
             throw new IllegalArgumentException("Input data cannot be null");
@@ -89,13 +89,14 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         }
     }
 
-    /**
-     * Calculates all summary metrics for the given data subset.
-     */
+    // ========================================
+    // ORCHESTRATION (Application Logic)
+    // ========================================
+
     private List<SummaryMetric> calculateAllMetrics(DataSubsetSpec subset) {
         List<SummaryMetric> metrics = new ArrayList<>();
 
-        // Separate numeric and non-numeric columns
+        // Identify numeric columns
         List<String> numericColumns = new ArrayList<>();
         for (String columnName : subset.getColumnNames()) {
             if (summaryStatisticsDataAccessObject.isNumericColumn(subset.getDatasetId(), columnName)) {
@@ -114,7 +115,6 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
 
         // Calculate outliers across all numeric columns
         List<OutlierPoint> outliers = detectOutliers(subset, numericColumns);
-        final int OUTLIER_Z_SCORE_THRESHOLD = 3;
         if (!outliers.isEmpty()) {
             metrics.add(new OutlierSummaryMetric(
                     MetricType.OUTLIERS,
@@ -138,9 +138,6 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         return metrics;
     }
 
-    /**
-     * Calculates all scalar metrics for a single column.
-     */
     private List<SummaryMetric> calculateColumnMetrics(DataSubsetSpec subset, String columnName) {
         List<SummaryMetric> metrics = new ArrayList<>();
         DataSubsetSpec columnSubset = createColumnSubset(subset, columnName);
@@ -149,18 +146,18 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
             List<Double> values = summaryStatisticsDataAccessObject.getNumericColumnValues(subset, columnName);
 
             if (values.isEmpty()) {
-                return metrics; // Return empty list if no data
+                return metrics;
             }
 
-            // Calculate basic statistics
-            double mean = calculateMean(values);
-            double median = calculateMedian(values);
-            double stdDev = calculateStandardDeviation(values, mean);
-            double min = calculateMin(values);
-            double max = calculateMax(values);
+            // DELEGATE ALL CALCULATIONS TO StatisticsCalculator
+            double mean = StatisticsCalculator.calculateMean(values);
+            double median = StatisticsCalculator.calculateMedian(values);
+            double stdDev = StatisticsCalculator.calculateStandardDeviation(values, mean);
+            double min = StatisticsCalculator.calculateMin(values);
+            double max = StatisticsCalculator.calculateMax(values);
             int count = values.size();
 
-            // Create metric objects
+            // Create metric entities (interactor's job)
             metrics.add(new ScalarSummaryMetrics(MetricType.MEAN, columnSubset, mean));
             metrics.add(new ScalarSummaryMetrics(MetricType.MEDIAN, columnSubset, median));
             metrics.add(new ScalarSummaryMetrics(MetricType.STANDARD_DEVIATION, columnSubset, stdDev));
@@ -169,16 +166,12 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
             metrics.add(new ScalarSummaryMetrics(MetricType.COUNT, columnSubset, count));
 
         } catch (Exception e) {
-            // Log error but continue with other columns
             System.err.println("Error calculating metrics for column " + columnName + ": " + e.getMessage());
         }
 
         return metrics;
     }
 
-    /**
-     * Creates a subset specification for a single column.
-     */
     private DataSubsetSpec createColumnSubset(DataSubsetSpec originalSubset, String columnName) {
         return new DataSubsetSpec(
                 originalSubset.getDatasetId(),
@@ -187,76 +180,12 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         );
     }
 
-    /**
-     * Calculates the arithmetic mean.
-     */
-    private double calculateMean(List<Double> values) {
-        return values.stream()
-                .mapToDouble(Double::doubleValue)
-                .average()
-                .orElse(0.0);
-    }
+    // ========================================
+    // OUTLIER DETECTION (Orchestration + Delegation)
+    // ========================================
 
-    /**
-     * Calculates the median.
-     */
-    private double calculateMedian(List<Double> values) {
-        if (values.isEmpty()) {
-            return 0.0;
-        }
-
-        List<Double> sorted = new ArrayList<>(values);
-        sorted.sort(Double::compareTo);
-
-        int size = sorted.size();
-        if (size % 2 == 0) {
-            return (sorted.get(size / 2 - 1) + sorted.get(size / 2)) / 2.0;
-        } else {
-            return sorted.get(size / 2);
-        }
-    }
-
-    /**
-     * Calculates the sample standard deviation.
-     */
-    private double calculateStandardDeviation(List<Double> values, double mean) {
-        if (values.size() <= 1) {
-            return 0.0;
-        }
-
-        double sumSquaredDiff = values.stream()
-                .mapToDouble(v -> Math.pow(v - mean, 2))
-                .sum();
-
-        return Math.sqrt(sumSquaredDiff / (values.size() - 1));
-    }
-
-    /**
-     * Finds the minimum value.
-     */
-    private double calculateMin(List<Double> values) {
-        return values.stream()
-                .mapToDouble(Double::doubleValue)
-                .min()
-                .orElse(0.0);
-    }
-
-    /**
-     * Finds the maximum value.
-     */
-    private double calculateMax(List<Double> values) {
-        return values.stream()
-                .mapToDouble(Double::doubleValue)
-                .max()
-                .orElse(0.0);
-    }
-
-    /**
-     * Detects outliers using z-score method across all numeric columns.
-     */
     private List<OutlierPoint> detectOutliers(DataSubsetSpec subset, List<String> numericColumns) {
         List<OutlierPoint> outliers = new ArrayList<>();
-        final int OUTLIER_Z_SCORE_THRESHOLD = 3;
 
         for (int colIdx = 0; colIdx < numericColumns.size(); colIdx++) {
             String columnName = numericColumns.get(colIdx);
@@ -268,28 +197,21 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
                     continue;
                 }
 
-                double mean = calculateMean(values);
-                double stdDev = calculateStandardDeviation(values, mean);
+                // DELEGATE calculation to StatisticsCalculator
+                List<StatisticsCalculator.OutlierInfo> outlierInfos =
+                        StatisticsCalculator.detectOutliers(values, OUTLIER_Z_SCORE_THRESHOLD);
 
-                // Skip if no variation in data
-                if (stdDev == 0) {
-                    continue;
-                }
-
-                // Check each value for outliers
+                // Convert to entity format with colIndex
                 List<Integer> rowIndices = subset.getRowIndices();
-                for (int i = 0; i < values.size(); i++) {
-                    double zScore = Math.abs((values.get(i) - mean) / stdDev);
+                for (StatisticsCalculator.OutlierInfo info : outlierInfos) {
+                    int actualRowIndex = (rowIndices != null && info.getIndex() < rowIndices.size())
+                            ? rowIndices.get(info.getIndex())
+                            : info.getIndex();
 
-                    if (zScore > OUTLIER_Z_SCORE_THRESHOLD) {
-                        int actualRowIndex = (rowIndices != null && i < rowIndices.size())
-                                ? rowIndices.get(i)
-                                : i;
-                        outliers.add(new OutlierPoint(actualRowIndex, colIdx, zScore));
-                    }
+                    outliers.add(new OutlierPoint(actualRowIndex, colIdx, info.getZScore()));
                 }
+
             } catch (Exception e) {
-                // Log and continue with other columns
                 System.err.println("Error detecting outliers in column " + columnName + ": " + e.getMessage());
             }
         }
@@ -297,9 +219,10 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         return outliers;
     }
 
-    /**
-     * Calculates the correlation matrix for numeric columns.
-     */
+    // ========================================
+    // CORRELATION MATRIX (Orchestration + Delegation)
+    // ========================================
+
     private double[][] calculateCorrelationMatrix(DataSubsetSpec subset, List<String> numericColumns) {
         int n = numericColumns.size();
         double[][] matrix = new double[n][n];
@@ -310,7 +233,6 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
             try {
                 allColumnValues.add(summaryStatisticsDataAccessObject.getNumericColumnValues(subset, columnName));
             } catch (Exception e) {
-                // If we can't get data, add empty list
                 allColumnValues.add(new ArrayList<>());
             }
         }
@@ -321,8 +243,8 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
                 if (i == j) {
                     matrix[i][j] = 1.0;
                 } else if (i < j) {
-                    // Calculate only upper triangle
-                    double correlation = calculatePearsonCorrelation(
+                    // DELEGATE calculation to StatisticsCalculator
+                    double correlation = StatisticsCalculator.calculatePearsonCorrelation(
                             allColumnValues.get(i),
                             allColumnValues.get(j)
                     );
@@ -333,33 +255,5 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         }
 
         return matrix;
-    }
-
-    /**
-     * Calculates Pearson correlation coefficient between two variables.
-     */
-    private double calculatePearsonCorrelation(List<Double> x, List<Double> y) {
-        if (x.size() != y.size() || x.isEmpty()) {
-            return 0.0;
-        }
-
-        int n = x.size();
-        double meanX = calculateMean(x);
-        double meanY = calculateMean(y);
-
-        double numerator = 0.0;
-        double sumSquaredDiffX = 0.0;
-        double sumSquaredDiffY = 0.0;
-
-        for (int i = 0; i < n; i++) {
-            double diffX = x.get(i) - meanX;
-            double diffY = y.get(i) - meanY;
-            numerator += diffX * diffY;
-            sumSquaredDiffX += diffX * diffX;
-            sumSquaredDiffY += diffY * diffY;
-        }
-
-        double denominator = Math.sqrt(sumSquaredDiffX * sumSquaredDiffY);
-        return denominator == 0 ? 0.0 : numerator / denominator;
     }
 }

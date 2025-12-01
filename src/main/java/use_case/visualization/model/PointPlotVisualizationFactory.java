@@ -106,6 +106,9 @@ public class PointPlotVisualizationFactory implements VisualizationModelFactory 
     }
 
     private OutlierSummaryMetric findOutlierMetric(SummaryReport report) {
+        if (report == null) {
+            return null;
+        }
         for (SummaryMetric metric : report.getSummaryMetrics()) {
             if (metric instanceof OutlierSummaryMetric outlierMetric &&
                     metric.getMetricType() == MetricType.OUTLIERS) {

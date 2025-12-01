@@ -3,6 +3,7 @@ package interface_adapter.visualization;
 
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.XYSeries;
 
 import use_case.visualization.io.VisualizationOutputBoundary;
 import use_case.visualization.io.VisualizationOutputData;
@@ -10,6 +11,7 @@ import use_case.visualization.model.Annotation;
 import use_case.visualization.model.DataPoint;
 import use_case.visualization.model.HeatmapModel;
 import use_case.visualization.model.Matrix;
+import use_case.visualization.model.PlotKind;
 import use_case.visualization.model.PointPlotModel;
 import use_case.visualization.model.VisualizationModel;
 
@@ -73,11 +75,11 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
                 .build();
 
         // Main data series
-        addSeries(chart, "Data", model.getDataPoints());
+        addSeries(chart, "Data", model.getDataPoints(), model.getPlotKind());
 
         // Outliers, if any
         if (!model.getOutliers().isEmpty()) {
-            addSeries(chart, "Outliers", model.getOutliers());
+            addSeries(chart, "Outliers", model.getOutliers(), PlotKind.SCATTER);
         }
 
         // Optional annotations (mean lines, thresholds, etc.)
@@ -86,7 +88,7 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
         return chart;
     }
 
-    private void addSeries(XYChart chart, String seriesName, List<DataPoint> points) {
+    private void addSeries(XYChart chart, String seriesName, List<DataPoint> points, PlotKind plotKind) {
         double[] x = new double[points.size()];
         double[] y = new double[points.size()];
 
@@ -95,7 +97,31 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
             y[i] = points.get(i).getY();
         }
 
-        chart.addSeries(seriesName, x, y);
+        XYSeries series = chart.addSeries(seriesName, x, y);
+        
+        // Set the render style based on PlotKind
+        // XChart XYSeriesRenderStyle enum - using valueOf to handle version differences
+        switch (plotKind) {
+            case BAR -> {
+                // Option A: treat BAR like Area (or Line/Scatter) for now
+                series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Area);
+                series.setMarker(null);
+            }
+            case LINE -> {
+                series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+            }
+            case HISTOGRAM -> {
+                series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.StepArea);
+            }
+            case SCATTER -> {
+                series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Scatter);
+            }
+            default -> {
+                series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Scatter);
+            }
+        }
+        
+        
     }
 
     private void applyAnnotations(XYChart chart, PointPlotModel model) {

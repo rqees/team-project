@@ -1,11 +1,13 @@
+
 package interface_adapter.visualization;
 
-import entity.DataSubsetSpec;
-import use_case.visualization.model.*;
-import use_case.visualization.io.*;
+import use_case.visualization.io.VisualizationInputBoundary;
+import use_case.visualization.io.VisualizationInputData;
 
-import java.util.List;
-
+/**
+ * Controller for the Visualization use case.
+ * The View calls this with the chosen subset, plot type, etc.
+ */
 public class VisualizationController {
 
     private final VisualizationInputBoundary interactor;
@@ -14,22 +16,8 @@ public class VisualizationController {
         this.interactor = interactor;
     }
 
-    public void onVisualizeButtonClicked(int summaryId,
-                                         PlotKind type,
-                                         DataSubsetSpec subsetSpec,
-                                         List<String> xCols,
-                                         List<String> yCols,
-                                         String title) {
-
-        VisualizationInputData inputData = new VisualizationInputData(
-                summaryId,
-                type,
-                subsetSpec,
-                xCols,
-                yCols,
-                title
-        );
-
+    public void visualize(VisualizationInputData inputData) {
         interactor.visualize(inputData);
     }
 }
+

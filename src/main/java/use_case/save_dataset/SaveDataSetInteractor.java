@@ -9,21 +9,31 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
 
     private final SaveDataSetDataAccessInterface dataAccess;
     private final SaveDataSetOutputBoundary outputBoundary;
+    private final CurrentTableGateway currentTableGateway;
 
     public SaveDataSetInteractor(SaveDataSetDataAccessInterface dataAccess,
-                                 SaveDataSetOutputBoundary outputBoundary) {
+                                 SaveDataSetOutputBoundary outputBoundary,
+                                 CurrentTableGateway currentTableGateway) {
         this.dataAccess = dataAccess;
         this.outputBoundary = outputBoundary;
+        this.currentTableGateway = currentTableGateway;
     }
 
     @Override
-    public void save(SaveDataSetInputData inputData) {
+    public void execute(SaveDataSetInputData inputData) {
         String id = inputData.getDatasetId();
-        DataSet dataSet = inputData.getDataSet();
 
         if (id == null || id.isBlank()) {
             outputBoundary.present(new SaveDataSetOutputData(
                     id, false, "Dataset ID cannot be empty."
+            ));
+            return;
+        }
+
+        DataSet dataSet = currentTableGateway.load();
+        if (dataSet == null) {
+            outputBoundary.present(new SaveDataSetOutputData(
+                    id, false, "No dataset loaded to save."
             ));
             return;
         }

@@ -7,7 +7,6 @@ import entity.DataType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,16 +20,19 @@ public class SaveDataSetInteractorTest {
     }
 
     @Test
-    void save_validId_callsDataAccessAndReturnsSuccess() {
+    void execute_validId_callsDataAccessAndReturnsSuccess() {
         // Arrange
         DataSet sample = createSampleDataSet();
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(sample);
         FakeDataAccess fakeDataAccess = new FakeDataAccess();
         FakePresenter fakePresenter = new FakePresenter();
-        SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter);
-        SaveDataSetInputData input = new SaveDataSetInputData("test_dataset", sample);
+        SaveDataSetInteractor interactor =
+                new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
+        SaveDataSetInputData input = new SaveDataSetInputData("test_dataset");
 
-        interactor.save(input);
+        interactor.execute(input);
 
+        assertTrue(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should have been called");
         assertTrue(fakeDataAccess.saveCalled, "DataAccess.save should have been called");
         assertEquals("test_dataset", fakeDataAccess.lastId);
         assertSame(sample, fakeDataAccess.lastDataSet);
@@ -41,19 +43,40 @@ public class SaveDataSetInteractorTest {
     }
 
     @Test
-    void save_blankId_doesNotCallDataAccessAndReturnsFailure() {
+    void execute_blankId_doesNotCallDataAccessAndReturnsFailure() {
         DataSet sample = createSampleDataSet();
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(sample);
         FakeDataAccess fakeDataAccess = new FakeDataAccess();
         FakePresenter fakePresenter = new FakePresenter();
-        SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter);
-        SaveDataSetInputData input = new SaveDataSetInputData("   ", sample);
+        SaveDataSetInteractor interactor =
+                new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
+        SaveDataSetInputData input = new SaveDataSetInputData("   ");
 
-        interactor.save(input);
+        interactor.execute(input);
 
+        assertFalse(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should NOT be called for blank ID");
         assertFalse(fakeDataAccess.saveCalled, "DataAccess.save should NOT have been called for blank ID");
         assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
         assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
         assertEquals("Dataset ID cannot be empty.", fakePresenter.lastOutput.getMessage());
+    }
+
+    @Test
+    void execute_noCurrentDataSet_returnsFailure() {
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(null);
+        FakeDataAccess fakeDataAccess = new FakeDataAccess();
+        FakePresenter fakePresenter = new FakePresenter();
+        SaveDataSetInteractor interactor =
+                new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
+        SaveDataSetInputData input = new SaveDataSetInputData("test_dataset");
+
+        interactor.execute(input);
+
+        assertTrue(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should have been called");
+        assertFalse(fakeDataAccess.saveCalled, "DataAccess.save should NOT be called when there is no dataset");
+        assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
+        assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
+        assertEquals("No dataset loaded to save.", fakePresenter.lastOutput.getMessage());
     }
 
     private static class FakeDataAccess implements SaveDataSetDataAccessInterface {
@@ -75,6 +98,21 @@ public class SaveDataSetInteractorTest {
         @Override
         public void present(SaveDataSetOutputData outputData) {
             this.lastOutput = outputData;
+        }
+    }
+
+    private static class FakeCurrentTableGateway implements CurrentTableGateway {
+        boolean loadCalled = false;
+        private final DataSet dataSet;
+
+        private FakeCurrentTableGateway(DataSet dataSet) {
+            this.dataSet = dataSet;
+        }
+
+        @Override
+        public DataSet load() {
+            loadCalled = true;
+            return dataSet;
         }
     }
 }

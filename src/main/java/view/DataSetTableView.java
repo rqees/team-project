@@ -1,5 +1,8 @@
 package view;
 
+import interface_adapter.cleaner.DataCleaningController;
+import interface_adapter.cleaner.DataCleaningState;
+import interface_adapter.cleaner.DataCleaningViewModel;
 import interface_adapter.load_api.LoadAPIController;
 import interface_adapter.load_api.LoadAPIViewModel;
 import interface_adapter.load_csv.LoadController;
@@ -34,6 +37,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.JTableHeader;
+import javax.swing.event.CellEditorListener;
+import javax.swing.event.ChangeEvent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -111,10 +116,14 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private final SaveDataSetViewModel saveViewModel;
     private SaveDataSetController saveController;
 
-        // >>> visualization
-        private VisualizationController visualizationController;
-        private final VisualizationViewModel visualizationViewModel;
-        // <<< visualization
+    // data cleaner
+    private DataCleaningController dataCleaningController;
+    private final DataCleaningViewModel dataCleaningViewModel;
+
+    // >>> visualization
+    private VisualizationController visualizationController;
+    private final VisualizationViewModel visualizationViewModel;
+    // <<< visualization
 
     // Statistics components
     private SummaryStatisticsController statisticsController;
@@ -157,7 +166,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                             LoadAPIViewModel loadAPIViewModel,
                             SaveDataSetViewModel saveViewModel,
                             VisualizationViewModel visualizationViewModel,
-                            SummaryStatisticsViewModel statisticsViewModel) {
+                            SummaryStatisticsViewModel statisticsViewModel,
+                            DataCleaningViewModel dataCleaningViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -172,6 +182,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.visualizationViewModel.addPropertyChangeListener(this);
         // <<< visualization
 
+        this.dataCleaningViewModel = dataCleaningViewModel;
+        this.dataCleaningViewModel.addPropertyChangeListener(this);
+
         this.statisticsViewModel = statisticsViewModel;
         this.statisticsViewModel.addPropertyChangeListener(this);
 
@@ -184,7 +197,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return true; // Allow editing on double-click
             }
         };
 
@@ -281,6 +294,21 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         menuBar.add(importMenu);
         menuBar.add(saveMenu);
+
+        // Add cell editor listener for cleaning
+        dataTable.getDefaultEditor(Object.class).addCellEditorListener(
+                new CellEditorListener() {
+                    @Override
+                    public void editingStopped(ChangeEvent e) {
+                        handleCellEdit();
+                    }
+
+                    @Override
+                    public void editingCanceled(ChangeEvent e) {
+                        // Do nothing on cancel
+                    }
+                }
+        );
 
         statsTextArea = new JTextArea(10, 20);
         statsTextArea.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
@@ -560,71 +588,74 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         statsPanel.add(statsScrollPane, BorderLayout.CENTER);
         statsPanel.add(instructionsLabel, BorderLayout.SOUTH);
         statsPanel.setPreferredSize(new Dimension(280, 0));
+
+
         }
-        private void layoutComponents() {
-            setLayout(new BorderLayout(10, 10));
-            setBackground(BG_DARK);
-        
-            JPanel topPanel = new JPanel(new BorderLayout());
-            topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
-            topPanel.setBackground(BG_MEDIUM);
-        
-            JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
-            leftPanel.setBackground(BG_MEDIUM);
-        
-            JLabel titleLabel = new JLabel("Data Analysis Platform");
-            titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 24));
-            titleLabel.setForeground(FG_PRIMARY);
-            leftPanel.add(titleLabel);
-            leftPanel.add(menuBar);
-        
-            topPanel.add(leftPanel, BorderLayout.WEST);
-        
-            JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            searchPanel.setBackground(BG_MEDIUM);
-            JLabel searchLabel = new JLabel("Search: ");
-            searchLabel.setForeground(FG_PRIMARY);
-            searchPanel.add(searchLabel);
-            searchPanel.add(searchField);
-            searchPanel.add(searchButton);
-            topPanel.add(searchPanel, BorderLayout.EAST);
-        
-            JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
-            centerPanel.setBorder(new EmptyBorder(0, 15, 10, 15));
-            centerPanel.setBackground(BG_DARK);
-            centerPanel.add(tableScrollPane, BorderLayout.CENTER);
-            centerPanel.add(statsPanel, BorderLayout.EAST);
-        
-            JPanel bottomPanel = new JPanel(new BorderLayout());
-            bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
-            bottomPanel.setBackground(BG_DARK);
-        
-            JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-            zoomPanel.setBackground(BG_DARK);
-            JLabel zoomLabelText = new JLabel("Zoom: ");
-            zoomLabelText.setForeground(FG_PRIMARY);
-            zoomPanel.add(zoomLabelText);
-            zoomPanel.add(zoomOutButton);
-            zoomPanel.add(zoomSlider);
-            zoomPanel.add(zoomInButton);
-            zoomPanel.add(zoomLabel);
-        
-            bottomPanel.add(zoomPanel, BorderLayout.NORTH);
-            
-            // >>> ADD VISUALIZATION PANELS HERE
-            // Create a panel to hold both visualization control and visualization display
-            JPanel vizContainer = new JPanel(new BorderLayout(10, 10));
-            vizContainer.setBackground(BG_DARK);
-            vizContainer.add(visualizationControlPanel, BorderLayout.WEST);
-            vizContainer.add(visualizationPanel, BorderLayout.CENTER);
-            
-            bottomPanel.add(vizContainer, BorderLayout.CENTER);
-            // <<< END VISUALIZATION PANELS
-        
-            add(topPanel, BorderLayout.NORTH);
-            add(centerPanel, BorderLayout.CENTER);
-            add(bottomPanel, BorderLayout.SOUTH);
-        }
+
+    private void layoutComponents() {
+        setLayout(new BorderLayout(10, 10));
+        setBackground(BG_DARK);
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
+        topPanel.setBackground(BG_MEDIUM);
+
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setBackground(BG_MEDIUM);
+
+        JLabel titleLabel = new JLabel("Data Analysis Platform");
+        titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 24));
+        titleLabel.setForeground(FG_PRIMARY);
+        leftPanel.add(titleLabel);
+        leftPanel.add(menuBar);
+
+        topPanel.add(leftPanel, BorderLayout.WEST);
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        searchPanel.setBackground(BG_MEDIUM);
+        JLabel searchLabel = new JLabel("Search: ");
+        searchLabel.setForeground(FG_PRIMARY);
+        searchPanel.add(searchLabel);
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        topPanel.add(searchPanel, BorderLayout.EAST);
+
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
+        centerPanel.setBorder(new EmptyBorder(0, 15, 10, 15));
+        centerPanel.setBackground(BG_DARK);
+        centerPanel.add(tableScrollPane, BorderLayout.CENTER);
+        centerPanel.add(statsPanel, BorderLayout.EAST);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
+        bottomPanel.setBackground(BG_DARK);
+
+        JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        zoomPanel.setBackground(BG_DARK);
+        JLabel zoomLabelText = new JLabel("Zoom: ");
+        zoomLabelText.setForeground(FG_PRIMARY);
+        zoomPanel.add(zoomLabelText);
+        zoomPanel.add(zoomOutButton);
+        zoomPanel.add(zoomSlider);
+        zoomPanel.add(zoomInButton);
+        zoomPanel.add(zoomLabel);
+
+        bottomPanel.add(zoomPanel, BorderLayout.NORTH);
+
+        // >>> ADD VISUALIZATION PANELS HERE
+        // Create a panel to hold both visualization control and visualization display
+        JPanel vizContainer = new JPanel(new BorderLayout(10, 10));
+        vizContainer.setBackground(BG_DARK);
+        vizContainer.add(visualizationControlPanel, BorderLayout.WEST);
+        vizContainer.add(visualizationPanel, BorderLayout.CENTER);
+
+        bottomPanel.add(vizContainer, BorderLayout.CENTER);
+        // <<< END VISUALIZATION PANELS
+
+        add(topPanel, BorderLayout.NORTH);
+        add(centerPanel, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
 
     private void setupEventHandlers() {
         searchButton.addActionListener(e -> performSearch());
@@ -753,6 +784,53 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         // Statistics calculate button handler
         calculateStatsButton.addActionListener(e -> performCalculateStatistics());
+    }
+
+    /**
+     * Handle when a cell edit is completed.
+     */
+    private void handleCellEdit() {
+        if (dataCleaningController == null) {
+            return;
+        }
+
+        int row = dataTable.getEditingRow();
+        int col = dataTable.getEditingColumn();
+
+        if (row < 0 || col < 0) {
+            row = dataTable.getSelectedRow();
+            col = dataTable.getSelectedColumn();
+        }
+
+        if (row >= 0 && col >= 0) {
+            Object value = dataTable.getValueAt(row, col);
+            String rawValue = value != null ? value.toString() : "";
+
+            // Call controller to clean and validate the edit
+            dataCleaningController.handleUserEdit(row, col, rawValue);
+        }
+    }
+
+    /**
+     * Handle header edit - triggered by right-clicking header.
+     */
+    private void handleHeaderEdit(int colIndex, String newHeader) {
+        if (dataCleaningController == null) {
+            return;
+        }
+
+        dataCleaningController.handleHeaderEdit(colIndex, newHeader);
+    }
+
+    /**
+     * Clean entire dataset automatically (called on load and before visualization).
+     */
+    private void cleanEntireDatasetAutomatically() {
+        if (dataCleaningController == null) {
+            return;
+        }
+
+        dataCleaningController.handleCleanEntireDataSet();
     }
 
     private void promptSaveDialog() {
@@ -1183,6 +1261,18 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     }
     
     private void performVisualization() {
+        if (dataCleaningController != null) {
+            // clean entire data before visualization
+            cleanEntireDatasetAutomatically();
+
+            // wait to ensure cleaning is done
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
         if (visualizationController == null) {
             JOptionPane.showMessageDialog(this,
                     "Visualization controller not available",
@@ -1274,7 +1364,36 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             int column = header.columnAtPoint(e.getPoint());
             
             if (column >= 0) {
-                // Check if column is numeric (using ViewModel state)
+
+                // >>> Right-click to edit header directly
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    String currentHeader = (String) dataTable.getColumnModel()
+                            .getColumn(column)
+                            .getHeaderValue();
+                    String newHeader = JOptionPane.showInputDialog(
+                            DataSetTableView.this,
+                            "Enter new header name:",
+                            currentHeader
+                    );
+
+                    if (newHeader.trim().isEmpty()) {
+                        // Show error for empty header
+                        JOptionPane.showMessageDialog(
+                                DataSetTableView.this,
+                                "Header name cannot be empty.",
+                                "Invalid Header",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        return;
+                    }
+
+                    if (newHeader != null && !newHeader.trim().isEmpty()) {
+                        handleHeaderEdit(column, newHeader.trim());
+                    }
+                    return;
+                }
+
+                // Left-click - Check if column is numeric (using ViewModel state)
                 String columnName = (String) dataTable.getColumnModel().getColumn(column).getHeaderValue();
                 VisualizationState state = visualizationViewModel.getState();
                 
@@ -1692,8 +1811,76 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     updateOverlayButtonState(state);
                 }
             }
+            // data cleaner
+            else if (newValue instanceof DataCleaningState) {
+                final DataCleaningState state = (DataCleaningState) newValue;
+
+                // Handle cell edit result
+                if (state.getLastEditedRowIndex() >= 0 && state.getLastEditedColIndex() >= 0) {
+                    int row = state.getLastEditedRowIndex();
+                    int col = state.getLastEditedColIndex();
+                    String cleanedValue = state.getLastCleanedValue();
+
+                    // Update the table with cleaned value
+                    tableModel.setValueAt(cleanedValue != null ? cleanedValue : "", row, col);
+
+                    // Show visual feedback if value was changed to null (invalid)
+                    if (cleanedValue == null) {
+                        dataTable.setRowSelectionInterval(row, row);
+                        dataTable.setColumnSelectionInterval(col, col);
+                        JOptionPane.showMessageDialog(this,
+                                "Invalid value. Cell cleared.",
+                                "Validation",
+                                JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+
+                // Handle header edit result
+                if (state.getLastEditedHeaderColIndex() >= 0) {
+                    int colIndex = state.getLastEditedHeaderColIndex();
+                    String newHeader = state.getLastEditedHeaderValue();
+
+                    if (newHeader != null) {
+                        // Update table column header
+                        dataTable.getColumnModel().getColumn(colIndex).setHeaderValue(newHeader);
+                        dataTable.getTableHeader().repaint();
+
+                        // Update table column header
+                        tableModel.setColumnIdentifiers(getUpdatedHeaders());
+                        dataTable.getTableHeader().repaint();
+
+                        // Reload table to ensure changes persist
+                        SwingUtilities.invokeLater(() -> {
+                            loadTableSilently();
+                        });
+                    }
+                }
+
+                // Handle header edit error
+                if (state.getHeaderErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getHeaderErrorMessage(),
+                            "Header Edit Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+                // Handle entire dataset cleaning result (silently for automatic cleaning)
+                if (state.getMissingCells() != null && !state.getMissingCells().isEmpty()) {
+                    // Reload table to show cleaned data
+                    loadTableSilently();
+                }
+            }
             //end
         }
+    }
+
+    private Object[] getUpdatedHeaders() {
+        int columnCount = dataTable.getColumnCount();
+        Object[] headers = new Object[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            headers[i] = dataTable.getColumnModel().getColumn(i).getHeaderValue();
+        }
+        return headers;
     }
     
     private List<Integer> getAllRowIndices() {
@@ -1733,6 +1920,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.saveController = controller;
     }
 
+    public void setDataCleaningController(DataCleaningController controller) {
+        this.dataCleaningController = controller;
+    }
+
     public void setSaveViewModel(SaveDataSetViewModel viewModel) {
         // no-op; view model now supplied in constructor
     }
@@ -1752,6 +1943,18 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     }
 
     public void loadTable() {
+        if (tableController != null) {
+            tableController.displayCurrentTable();
+
+            // Clean the entire dataset after loading
+            SwingUtilities.invokeLater(() -> {
+                cleanEntireDatasetAutomatically();
+            });
+        }
+    }
+
+    // Helper method to reload table without triggering another clean
+    private void loadTableSilently() {
         if (tableController != null) {
             tableController.displayCurrentTable();
         }

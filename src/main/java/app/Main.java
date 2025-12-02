@@ -23,6 +23,7 @@ public class Main {
                     .addSaveUseCase()
                     .loadSampleData()  // Load sample data through builder
                     .addVisualizationUseCase()
+                    .addDataCleaningUseCase()
                     .build();
 
             application.setSize(1400, 900);

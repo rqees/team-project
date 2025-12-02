@@ -19,6 +19,7 @@ public class Main {
                     .addSearchUseCase()
                     .addTableDisplayUseCase()
                     .addLoadUseCase()
+                    .addStatisticsUseCase()
                     .addSaveUseCase()
                     .addDataCleaningUseCase()
                     .loadSampleData()  // Load sample data through builder

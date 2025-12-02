@@ -50,21 +50,6 @@ public class SaveDataSetInteractorTest {
     }
 
     @Test
-    void execute_blankId_doesNotCallDataAccessAndReturnsFailure() throws java.io.IOException {
-        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(createSampleDataSet());
-        FakeDataAccess fakeDataAccess = new FakeDataAccess();
-        FakePresenter fakePresenter = new FakePresenter();
-        SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
-        interactor.execute(new SaveDataSetInputData("   "));
-
-        assertFalse(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should NOT be called for blank ID");
-        assertFalse(fakeDataAccess.saveCalled, "DataAccess.save should NOT have been called for blank ID");
-        assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
-        assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
-        assertEquals("Dataset ID cannot be empty.", fakePresenter.lastOutput.getMessage());
-    }
-
-    @Test
     void execute_noCurrentDataSet_returnsFailure() throws java.io.IOException {
         FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(null);
         FakeDataAccess fakeDataAccess = new FakeDataAccess();

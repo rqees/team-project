@@ -46,7 +46,7 @@ public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInt
     }
 
     @Override
-    public void save(String id, DataSet dataSet) {
+    public void save(String id, DataSet dataSet) throws IOException {
         File file = fileFor(id);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -61,9 +61,6 @@ public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInt
                 writer.write(String.join(",", row.getCells()));
                 writer.newLine();
             }
-
-        } catch (IOException e) {
-            throw new RuntimeException("Error saving dataset '" + id + "'", e);
         }
     }
 }

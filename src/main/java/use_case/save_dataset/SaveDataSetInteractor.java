@@ -33,7 +33,7 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
      * @param inputData contains the target identifier for the dataset
      */
     @Override
-    public void execute(SaveDataSetInputData inputData) {
+    public void execute(SaveDataSetInputData inputData) throws java.io.IOException {
         String id = inputData.getDatasetId();
 
         if (id == null || id.isBlank()) {
@@ -51,17 +51,10 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
             return;
         }
 
-        try {
-            dataAccess.save(id, dataSet);
+        dataAccess.save(id, dataSet);
 
-            outputBoundary.present(new SaveDataSetOutputData(
-                    id, true, "Dataset saved successfully."
-            ));
-
-        } catch (RuntimeException e) {
-            outputBoundary.present(new SaveDataSetOutputData(
-                    id, false, "Failed to save dataset: " + e.getMessage()
-            ));
-        }
+        outputBoundary.present(new SaveDataSetOutputData(
+                id, true, "Dataset saved successfully."
+        ));
     }
 }

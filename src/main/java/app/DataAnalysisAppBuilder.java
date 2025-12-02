@@ -11,6 +11,7 @@ import interface_adapter.search.SearchPresenter;
 import interface_adapter.search.SearchViewModel;
 import interface_adapter.save_dataset.SaveDataSetController;
 import interface_adapter.save_dataset.SaveDataSetPresenter;
+import interface_adapter.save_dataset.SaveDataSetViewModel;
 import interface_adapter.table.TableController;
 import interface_adapter.table.TablePresenter;
 import interface_adapter.table.TableViewModel;
@@ -62,6 +63,7 @@ public class DataAnalysisAppBuilder {
     private SearchViewModel searchViewModel;
     private TableViewModel tableViewModel;
     private LoadViewModel loadViewModel;
+    private SaveDataSetViewModel saveDataSetViewModel;
 
     private VisualizationViewModel visualizationViewModel;
 
@@ -85,10 +87,17 @@ public class DataAnalysisAppBuilder {
         searchViewModel = new SearchViewModel();
         tableViewModel = new TableViewModel();
         loadViewModel = new LoadViewModel();
+        saveDataSetViewModel = new SaveDataSetViewModel();
         visualizationViewModel = new VisualizationViewModel();
         statisticsViewModel = new SummaryStatisticsViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel,
-                loadViewModel, visualizationViewModel, statisticsViewModel);
+        dataSetTableView = new DataSetTableView(
+                searchViewModel,
+                tableViewModel,
+                loadViewModel,
+                saveDataSetViewModel,
+                visualizationViewModel,
+                statisticsViewModel
+        );
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }
@@ -122,7 +131,7 @@ public class DataAnalysisAppBuilder {
     }
 
     public DataAnalysisAppBuilder addSaveUseCase() {
-        final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(dataSetTableView);
+        final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(saveDataSetViewModel);
         final SaveDataSetDataAccessInterface saveDataAccess = new FileSaveDataSetDataAccessObject("saved_datasets");
         final SaveDataSetInputBoundary saveInteractor = new SaveDataSetInteractor(saveDataAccess, saveOutputBoundary, tableGateway);
         final SaveDataSetController saveController = new SaveDataSetController(saveInteractor);

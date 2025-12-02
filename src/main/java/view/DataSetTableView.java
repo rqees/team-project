@@ -1148,33 +1148,67 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             JTableHeader header = (JTableHeader) e.getSource();
             int column = header.columnAtPoint(e.getPoint());
 
-            if (column >= 0) {
-                // Check if column is numeric
-                String columnName = (String) dataTable.getColumnModel().getColumn(column).getHeaderValue();
-                List<String> numericColumns = getNumericColumnNames();
+            if (column < 0) {
+                return;
+            }
 
-                if (!numericColumns.contains(columnName)) {
-                    JOptionPane.showMessageDialog(DataSetTableView.this,
-                            "Only numeric columns can be visualized",
-                            "Invalid Column",
-                            JOptionPane.WARNING_MESSAGE);
+            // right click: header name change
+            if (SwingUtilities.isRightMouseButton(e)) {
+                // Get current header text
+                String oldHeader = (String) dataTable.getColumnModel()
+                        .getColumn(column)
+                        .getHeaderValue();
+
+                // Ask user for new header name
+                String newHeader = JOptionPane.showInputDialog(
+                        DataSetTableView.this,
+                        "Enter new column name:",
+                        oldHeader
+                );
+
+                // User pressed Cancel or closed dialog
+                if (newHeader == null) {
                     return;
                 }
 
-                // Toggle selection
-                if (selectedColumns.contains(column)) {
-                    selectedColumns.remove(column);
-                } else {
-                    selectedColumns.add(column);
+                // Call cleaning controller so use case can validate + update
+                if (dataCleaningController != null) {
+                    dataCleaningController.handleHeaderEdit(column, newHeader);
                 }
 
-                // Update UI
-                header.repaint();
-                updateSelectedColumnsLabel();
-                updatePlotTypeEnabledState();
-                updateRoleSelectors(); // Update dropdowns to show only selected columns
-                updateVisualizeButtonState();
+                return;
             }
+
+            // left-click: visualization column selection
+            if (!SwingUtilities.isLeftMouseButton(e)) {
+                return;
+            }
+            // Check if column is numeric
+            String columnName = (String) dataTable.getColumnModel().getColumn(column).getHeaderValue();
+            List<String> numericColumns = getNumericColumnNames();
+
+            if (!numericColumns.contains(columnName)) {
+                JOptionPane.showMessageDialog(DataSetTableView.this,
+                        "Only numeric columns can be visualized",
+                        "Invalid Column",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Toggle selection
+            if (selectedColumns.contains(column)) {
+                selectedColumns.remove(column);
+            } else {
+                selectedColumns.add(column);
+            }
+
+            // Update UI
+            header.repaint();
+            updateSelectedColumnsLabel();
+            updatePlotTypeEnabledState();
+            updateRoleSelectors(); // Update dropdowns to show only selected columns
+            updateVisualizeButtonState();
+
         }
     }
 

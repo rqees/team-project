@@ -1,9 +1,10 @@
 package use_case.save_dataset;
 
 import entity.DataSet;
+import use_case.dataset.CurrentTableGateway;
 
 /**
- * [fill]
+ * Interactor that saves the currently loaded dataset through a data access layer.
  */
 public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
 
@@ -11,6 +12,13 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
     private final SaveDataSetOutputBoundary outputBoundary;
     private final CurrentTableGateway currentTableGateway;
 
+    /**
+     * Creates a new save dataset interactor.
+     *
+     * @param dataAccess          persistence interface for saving datasets
+     * @param outputBoundary      presenter used to report save results
+     * @param currentTableGateway interface for providing the currently loaded dataset
+     */
     public SaveDataSetInteractor(SaveDataSetDataAccessInterface dataAccess,
                                  SaveDataSetOutputBoundary outputBoundary,
                                  CurrentTableGateway currentTableGateway) {
@@ -19,6 +27,11 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
         this.currentTableGateway = currentTableGateway;
     }
 
+    /**
+     * Executes the save dataset use case.
+     *
+     * @param inputData contains the target identifier for the dataset
+     */
     @Override
     public void execute(SaveDataSetInputData inputData) {
         String id = inputData.getDatasetId();

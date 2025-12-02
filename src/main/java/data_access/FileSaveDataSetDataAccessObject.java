@@ -27,7 +27,22 @@ public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInt
     }
 
     private File fileFor(String id) {
-        return new File(rootDir, id + ".csv");
+        File target = new File(id);
+
+        if (!target.isAbsolute()) {
+            target = new File(rootDir, id);
+        }
+
+        if (!target.getName().toLowerCase().endsWith(".csv")) {
+            target = new File(target.getParentFile(), target.getName() + ".csv");
+        }
+
+        File parent = target.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+
+        return target;
     }
 
     @Override

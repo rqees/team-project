@@ -19,6 +19,7 @@ public class Main {
                     .addSearchUseCase()
                     .addTableDisplayUseCase()
                     .addLoadUseCase()
+                    .addSaveUseCase()
                     .loadSampleData()  // Load sample data through builder
                     .addVisualizationUseCase()
                     .build();

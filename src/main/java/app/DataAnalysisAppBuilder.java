@@ -9,6 +9,8 @@ import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
 import interface_adapter.search.SearchPresenter;
 import interface_adapter.search.SearchViewModel;
+import interface_adapter.save_dataset.SaveDataSetController;
+import interface_adapter.save_dataset.SaveDataSetPresenter;
 import interface_adapter.table.TableController;
 import interface_adapter.table.TablePresenter;
 import interface_adapter.table.TableViewModel;
@@ -19,6 +21,10 @@ import use_case.load_csv.LoadOutputBoundary;
 import use_case.search.SearchInputBoundary;
 import use_case.search.SearchInteractor;
 import use_case.search.SearchOutputBoundary;
+import use_case.save_dataset.SaveDataSetDataAccessInterface;
+import use_case.save_dataset.SaveDataSetInputBoundary;
+import use_case.save_dataset.SaveDataSetInteractor;
+import use_case.save_dataset.SaveDataSetOutputBoundary;
 import use_case.table.DisplayTableInputBoundary;
 import use_case.table.DisplayTableInteractor;
 import view.DataSetTableView;
@@ -26,6 +32,7 @@ import data_access.InMemoryDataSubsetGateway;
 import data_access.InMemorySummaryReportGateway;
 import javax.swing.*;
 import java.awt.*;
+import data_access.FileSaveDataSetDataAccessObject;
 import interface_adapter.visualization.VisualizationController;
 import interface_adapter.visualization.VisualizationPresenter;
 import interface_adapter.visualization.VisualizationViewModel;
@@ -102,6 +109,15 @@ public class DataAnalysisAppBuilder {
         return this;
     }
 
+    public DataAnalysisAppBuilder addSaveUseCase() {
+        final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(dataSetTableView);
+        final SaveDataSetDataAccessInterface saveDataAccess = new FileSaveDataSetDataAccessObject("saved_datasets");
+        final SaveDataSetInputBoundary saveInteractor = new SaveDataSetInteractor(saveDataAccess, saveOutputBoundary, tableGateway);
+        final SaveDataSetController saveController = new SaveDataSetController(saveInteractor);
+
+        dataSetTableView.setSaveController(saveController);
+        return this;
+    }
         /**
      * Wires the Visualization use case:
      *  - VisualizationInteractor

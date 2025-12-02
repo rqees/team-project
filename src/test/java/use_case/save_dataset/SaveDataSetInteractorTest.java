@@ -5,12 +5,21 @@ import entity.DataRow;
 import entity.DataSet;
 import entity.DataType;
 import org.junit.jupiter.api.Test;
+import use_case.dataset.CurrentTableGateway;
 
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for {@link SaveDataSetInteractor}.
+ */
 public class SaveDataSetInteractorTest {
+    /**
+     * Creates a sample dataset for testing.
+     *
+     * @return sample dataset with two rows and two columns
+     */
     private DataSet createSampleDataSet() {
         DataRow row1 = new DataRow(Arrays.asList("Alice", "25"));
         DataRow row2 = new DataRow(Arrays.asList("Bob", "30"));
@@ -107,6 +116,11 @@ public class SaveDataSetInteractorTest {
 
         private FakeCurrentTableGateway(DataSet dataSet) {
             this.dataSet = dataSet;
+        }
+
+        @Override
+        public void save(DataSet table) {
+            // not needed for these tests
         }
 
         @Override

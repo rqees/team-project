@@ -8,10 +8,12 @@ import interface_adapter.search.SearchViewModel;
 import interface_adapter.table.TableController;
 import interface_adapter.table.TableState;
 import interface_adapter.table.TableViewModel;
+import interface_adapter.save_dataset.SaveDataSetController;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -40,6 +42,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JMenuItem loadCSVItem;
     private JMenuItem kaggleItem;
     private JMenu saveMenu;
+    private JMenuItem saveAsItem;
     private JMenu visualizationMenu;
     private JPanel statsPanel;
     private JTextArea statsTextArea;
@@ -60,6 +63,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private LoadController loadController;
     private final LoadViewModel loadViewModel;
+    private SaveDataSetController saveController;
 
     public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel) {
         this.searchViewModel = searchViewModel;
@@ -137,6 +141,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         saveMenu = new JMenu("Save");
         saveMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+        saveAsItem = new JMenuItem("Save Dataset...");
+        saveAsItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        saveMenu.add(saveAsItem);
 
         visualizationMenu = new JMenu("Visualization");
         visualizationMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
@@ -239,6 +246,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         });
 
+        saveAsItem.addActionListener(e -> promptSaveDialog());
+
         loadCSVItem.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             int result = fileChooser.showOpenDialog(DataSetTableView.this);
@@ -268,6 +277,46 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     break;
             }
         });
+    }
+
+    private void promptSaveDialog() {
+        if (saveController == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Save is not available yet.",
+                    "Save Dataset",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Dataset");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
+        fileChooser.setSelectedFile(new File("dataset.csv"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File selectedFile = fileChooser.getSelectedFile();
+        if (!selectedFile.getName().toLowerCase().endsWith(".csv")) {
+            selectedFile = new File(selectedFile.getParentFile(), selectedFile.getName() + ".csv");
+        }
+
+        if (selectedFile.exists()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "File already exists. Overwrite?",
+                    "Confirm Save",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+            if (choice != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+
+        saveController.execute(selectedFile.getAbsolutePath());
     }
 
     private void performSearch() {
@@ -387,8 +436,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         // TODO: implement when ImportController is created
     }
 
-    public void setSaveController(Object controller) {
-        // TODO: implement when SaveController is created
+    public void setSaveController(SaveDataSetController controller) {
+        this.saveController = controller;
     }
 
     public void setVisualizationController(Object controller) {

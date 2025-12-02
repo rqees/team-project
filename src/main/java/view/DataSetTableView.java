@@ -541,7 +541,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Save Dataset");
         fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
-        fileChooser.setSelectedFile(new File("dataset.csv"));
 
         int userSelection = fileChooser.showSaveDialog(this);
         if (userSelection != JFileChooser.APPROVE_OPTION) {
@@ -549,7 +548,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
 
         File selectedFile = fileChooser.getSelectedFile();
-        if (selectedFile == null || selectedFile.getName().trim().isEmpty()) {
+        String rawName = "";
+        if (selectedFile != null) {
+            rawName = selectedFile.getName().trim();
+        }
+
+        if (selectedFile == null || rawName.isEmpty() || selectedFile.isDirectory()) {
             // Trigger existing validation path so the presenter shows the "empty ID" message.
             try {
                 saveController.execute("");

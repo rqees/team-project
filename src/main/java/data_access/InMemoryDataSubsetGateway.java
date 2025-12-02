@@ -30,24 +30,44 @@ import java.util. *;
                 }
 
                 Map<String, List<Double>> numericColumns = new HashMap<>();
+                Map<String, List<String>> categoricalColumns = new HashMap<>();
 
                 for (String colName : spec.getColumnNames()) {
-                    List<Double> colValues = new ArrayList<>();
-                    for (Integer rowIndex : spec.getRowIndices()) {
-                        DataRow row = dataSet.getRows().get(rowIndex);
-                        int colIndex = -1;
-                        for (int i = 0; i < dataSet.getColumns().size(); i++) {
-                            if (dataSet.getColumns().get(i).getHeader().equals(colName)) {
-                                colIndex = i;
-                                break;
-                            }
+                    // Find column index
+                    int colIndex = -1;
+                    entity.Column column = null;
+                    for (int i = 0; i < dataSet.getColumns().size(); i++) {
+                        if (dataSet.getColumns().get(i).getHeader().equals(colName)) {
+                            colIndex = i;
+                            column = dataSet.getColumns().get(i);
+                            break;
                         }
-                        double value = Double.parseDouble(row.getCells().get(colIndex));
-                        colValues.add(value);
                     }
-                    numericColumns.put(colName, colValues);
+                    
+                    if (colIndex == -1) {
+                        continue; // Skip if column not found
+                    }
+                    
+                    // Determine if numeric or categorical
+                    if (column.getDataType() == entity.DataType.NUMERIC) {
+                        List<Double> colValues = new ArrayList<>();
+                        for (Integer rowIndex : spec.getRowIndices()) {
+                            DataRow row = dataSet.getRows().get(rowIndex);
+                            double value = Double.parseDouble(row.getCells().get(colIndex));
+                            colValues.add(value);
+                        }
+                        numericColumns.put(colName, colValues);
+                    } else {
+                        // Categorical or other types
+                        List<String> colValues = new ArrayList<>();
+                        for (Integer rowIndex : spec.getRowIndices()) {
+                            DataRow row = dataSet.getRows().get(rowIndex);
+                            colValues.add(row.getCells().get(colIndex));
+                        }
+                        categoricalColumns.put(colName, colValues);
+                    }
                 }
 
-                return new DataSubsetData(numericColumns);
+                return new DataSubsetData(numericColumns, categoricalColumns);
             }
         }

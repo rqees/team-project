@@ -3,10 +3,14 @@ package app;
 import view.DataSetTableView;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            // Set modern dark theme
+            setupModernDarkTheme();
+            
             DataAnalysisAppBuilder appBuilder = new DataAnalysisAppBuilder();
 
             JFrame application = appBuilder
@@ -17,7 +21,7 @@ public class Main {
                     .loadSampleData()  // Load sample data through builder
                     .build();
 
-            application.setSize(1200, 700);
+            application.setSize(1400, 900);
             application.setLocationRelativeTo(null);
             application.setVisible(true);
 

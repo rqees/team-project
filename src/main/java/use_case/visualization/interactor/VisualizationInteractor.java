@@ -33,7 +33,7 @@ public class VisualizationInteractor implements VisualizationInputBoundary {
 
         SummaryReport summaryReport = summaryReportGateway.getById(inputData.getSummaryReportId());
 
-        // 🔥 Explicit Factory usage:
+        // Explicit Factory usage:
         VisualizationModel model =
                 modelFactory.create(inputData, subsetData, summaryReport);
 

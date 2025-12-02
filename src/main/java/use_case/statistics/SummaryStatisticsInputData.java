@@ -6,11 +6,6 @@ import java.util.List;
 
 /**
  * Input data for the Summary Statistics Use Case.
- *
- * Clean Architecture Compliant:
- * - This class is in the Use Case layer, so it CAN depend on entities
- * - It accepts primitives from the Controller (Interface Adapter layer)
- * - It creates the entity internally, so Controller doesn't need to
  */
 public class SummaryStatisticsInputData {
     private final int dataSubsetId;
@@ -19,7 +14,6 @@ public class SummaryStatisticsInputData {
 
     /**
      * Primary constructor - accepts primitives from Controller.
-     * Creates entity internally (Clean Architecture compliant).
      *
      * @param dataSubsetId unique identifier for this data subset
      * @param reportName name of the report to be generated

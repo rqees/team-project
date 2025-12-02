@@ -6,12 +6,7 @@ import use_case.statistics.SummaryStatisticsInputData;
 import java.util.List;
 
 /**
- * Controller for Summary Statistics (Clean Architecture compliant).
- *
- * Clean Architecture Compliance:
- * - NO entity imports (Interface Adapter must not depend on entities)
- * - Only depends on Use Case layer (inward dependency)
- * - Passes primitives to InputData, which creates entities internally
+ * Controller for Summary Statistics
  */
 public class SummaryStatisticsController {
 
@@ -23,10 +18,6 @@ public class SummaryStatisticsController {
 
     /**
      * Executes the summary statistics use case.
-     *
-     * Accepts primitive types from the UI and passes to InputData.
-     * InputData will create entities internally (Clean Architecture compliant).
-     *
      * @param dataSubsetId unique identifier for this analysis
      * @param reportName name for the generated report
      * @param datasetId identifier of the dataset to analyze
@@ -62,9 +53,6 @@ public class SummaryStatisticsController {
 
     /**
      * Executes the summary statistics use case with all rows.
-     *
-     * Convenience method when analyzing all rows in the dataset.
-     *
      * @param dataSubsetId unique identifier for this analysis
      * @param reportName name for the generated report
      * @param datasetId identifier of the dataset to analyze

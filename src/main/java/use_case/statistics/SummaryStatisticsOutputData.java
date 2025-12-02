@@ -8,12 +8,6 @@ import java.util.Map;
 
 /**
  * Output data for the Summary Statistics Use Case.
- *
- * Clean Architecture Compliant:
- * - This class is in the Use Case layer, so it CAN depend on entities
- * - It accepts entities from the Interactor
- * - It extracts primitives for the Presenter (Interface Adapter layer)
- * - Presenter receives primitives only, not entities
  */
 public class SummaryStatisticsOutputData {
     // Primitive data extracted from entities
@@ -26,8 +20,6 @@ public class SummaryStatisticsOutputData {
 
     /**
      * Constructor - accepts entity from Interactor.
-     * Extracts primitives so Presenter doesn't need entities (Clean Architecture compliant).
-     *
      * @param report the SummaryReport entity
      */
     public SummaryStatisticsOutputData(SummaryReport report) {
@@ -46,7 +38,6 @@ public class SummaryStatisticsOutputData {
 
     /**
      * Extracts column metrics from entity list into primitive data structure.
-     * Presenter receives primitives only, not entity objects.
      */
     private Map<String, ColumnMetricsData> extractColumnMetrics(List<SummaryMetric> metrics) {
         Map<String, ColumnMetricsData> result = new HashMap<>();
@@ -104,8 +95,6 @@ public class SummaryStatisticsOutputData {
 
     /**
      * Simple data class holding column metrics as primitives.
-     * No entity objects - just primitive types.
-     * Presenter can access this without depending on entities.
      */
     public static class ColumnMetricsData {
         private final String columnName;

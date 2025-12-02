@@ -7,13 +7,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 /**
- * Presenter for Summary Statistics (Clean Architecture compliant).
- *
- * Clean Architecture Compliance:
- * - NO entity imports (Interface Adapter must not depend on entities)
- * - Only depends on Use Case layer (inward dependency)
- * - Receives primitives from OutputData, not entity objects
- * - Formats primitives for ViewModel
+ * Presenter for Summary Statistics
  */
 public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBoundary {
 
@@ -75,7 +69,6 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
 
     /**
      * Builds dataset description from primitive data.
-     * No entity dependencies!
      */
     private String buildDatasetDescription(String datasetId, int numColumns, int numRows) {
         return String.format("Dataset: %s (%d columns, %d rows)",
@@ -84,7 +77,6 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
 
     /**
      * Formats column metrics from primitive data into view-ready format.
-     * No entity dependencies - receives ColumnMetricsData which contains only primitives!
      */
     private Map<String, SummaryStatisticsState.ColumnStatistics> formatColumnStatistics(
             Map<String, SummaryStatisticsOutputData.ColumnMetricsData> columnMetricsData) {

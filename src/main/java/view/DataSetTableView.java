@@ -510,9 +510,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         });
 
-        kaggleItem.addActionListener(e -> {
-            showKaggleImportDialog();
-        });
+        kaggleItem.addActionListener(e -> {showKaggleImportDialog();});
 
         loadViewModel.addPropertyChangeListener(evt -> {
             switch (evt.getPropertyName()) {
@@ -535,9 +533,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
      * Shows a dialog that asks for Kaggle dataset information (but not
      * credentials), then downloads the requested CSV using the Kaggle
      * HTTP API and forwards the downloaded file to the existing Load use case.
-     *
-     * <p>Authentication is taken from the environment variables
-     * {@code KAGGLE_USERNAME} and {@code KAGGLE_KEY}.</p>
      */
     private void showKaggleImportDialog() {
         if (loadController == null) {
@@ -652,7 +647,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
 
         if (selectedFile == null || rawName.isEmpty() || selectedFile.isDirectory()) {
-            // Trigger existing validation path so the presenter shows the "empty ID" message.
             try {
                 saveController.execute("");
             } catch (java.io.IOException e) {

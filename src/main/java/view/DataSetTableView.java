@@ -21,6 +21,7 @@ import interface_adapter.visualization.VisualizationState;
 import interface_adapter.visualization.VisualizationViewModel;
 import org.knowm.xchart.XChartPanel;
 import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYSeries;
 // <<< visualization
 import interface_adapter.statistics.SummaryStatisticsController;
 import interface_adapter.statistics.SummaryStatisticsState;
@@ -138,6 +139,17 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private JComboBox<String> colorByComboBox;
         private JButton visualizeButton;
         private JLabel selectedColumnsLabel;
+        
+        // Summary overlay controls
+        private JButton showSummaryOverlayButton;
+        private JPanel overlayCheckboxPanel;
+        private JScrollPane overlayCheckboxScrollPane;
+        private JCheckBox showMeanCheckBox;
+        private JCheckBox showMedianCheckBox;
+        private JCheckBox showStdDevBandCheckBox;
+        private JCheckBox showMinMaxCheckBox;
+        // private JCheckBox highlightOutliersCheckBox;
+        private boolean overlayEnabled = false;
 
     public DataSetTableView(SearchViewModel searchViewModel,
                             TableViewModel tableViewModel,
@@ -408,6 +420,65 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             selectedColumnsLabel.setForeground(FG_SECONDARY);
             buttonPanel.add(selectedColumnsLabel);
             visualizationControlPanel.add(buttonPanel);
+            
+            // Summary Overlay Section
+            JPanel overlaySection = new JPanel();
+            overlaySection.setLayout(new BoxLayout(overlaySection, BoxLayout.Y_AXIS));
+            overlaySection.setBackground(BG_DARK);
+            overlaySection.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Summary Overlays",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
+            ));
+            
+            // Show Summary Overlay button
+            JPanel overlayButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            overlayButtonPanel.setBackground(BG_DARK);
+            showSummaryOverlayButton = new JButton("Show Summary Overlay");
+            showSummaryOverlayButton.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+            showSummaryOverlayButton.setFocusPainted(false);
+            showSummaryOverlayButton.setEnabled(false);
+            showSummaryOverlayButton.setBackground(BG_LIGHT);
+            showSummaryOverlayButton.setForeground(FG_SECONDARY);
+            showSummaryOverlayButton.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+            showSummaryOverlayButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            showSummaryOverlayButton.addActionListener(e -> toggleSummaryOverlay());
+            overlayButtonPanel.add(showSummaryOverlayButton);
+            overlaySection.add(overlayButtonPanel);
+            
+            // Overlay checkboxes panel
+            overlayCheckboxPanel = new JPanel();
+            overlayCheckboxPanel.setLayout(new BoxLayout(overlayCheckboxPanel, BoxLayout.Y_AXIS));
+            overlayCheckboxPanel.setBackground(BG_DARK);
+            overlayCheckboxPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            
+            showMeanCheckBox = createOverlayCheckbox("Show mean");
+            showMedianCheckBox = createOverlayCheckbox("Show median");
+            showStdDevBandCheckBox = createOverlayCheckbox("Show std dev band");
+            showMinMaxCheckBox = createOverlayCheckbox("Show min/max");
+            // highlightOutliersCheckBox = createOverlayCheckbox("Highlight outliers");
+            
+            overlayCheckboxPanel.add(showMeanCheckBox);
+            overlayCheckboxPanel.add(showMedianCheckBox);
+            overlayCheckboxPanel.add(showStdDevBandCheckBox);
+            overlayCheckboxPanel.add(showMinMaxCheckBox);
+            // overlayCheckboxPanel.add(highlightOutliersCheckBox);
+            
+            // Make checkboxes initially disabled
+            setOverlayCheckboxesEnabled(false);
+            
+            overlayCheckboxScrollPane = new JScrollPane(overlayCheckboxPanel);
+            overlayCheckboxScrollPane.setBackground(BG_DARK);
+            overlayCheckboxScrollPane.setBorder(BorderFactory.createEmptyBorder());
+            overlayCheckboxScrollPane.setPreferredSize(new Dimension(0, 120));
+            overlayCheckboxScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+            overlayCheckboxScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+            overlayCheckboxScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            overlaySection.add(overlayCheckboxScrollPane);
+            
+            visualizationControlPanel.add(overlaySection);
     
     
             // <<< visualization
@@ -1240,12 +1311,299 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         if (chart != null) {
             chartPanel = new XChartPanel<>(chart);
             visualizationPanel.add(chartPanel, BorderLayout.CENTER);
+            
+            // Clear any existing overlays when a new chart is displayed
+            // Overlays will be reapplied if overlay is enabled
+            if (overlayEnabled && chartPanel != null && chartPanel.getChart() != null) {
+                applySummaryOverlays();
+            }
         }
 
         visualizationPanel.revalidate();
         visualizationPanel.repaint();
     }
     // <<< visualization
+    
+    // >>> summary overlay helper methods
+    private JCheckBox createOverlayCheckbox(String text) {
+        JCheckBox checkbox = new JCheckBox(text);
+        checkbox.setFont(new Font(FONT_NAME, Font.PLAIN, 10));
+        checkbox.setBackground(BG_DARK);
+        checkbox.setForeground(FG_PRIMARY);
+        checkbox.setFocusPainted(false);
+        checkbox.addActionListener(e -> updateOverlays());
+        return checkbox;
+    }
+    
+    private void setOverlayCheckboxesEnabled(boolean enabled) {
+        showMeanCheckBox.setEnabled(enabled);
+        showMedianCheckBox.setEnabled(enabled);
+        showStdDevBandCheckBox.setEnabled(enabled);
+        showMinMaxCheckBox.setEnabled(enabled);
+        // highlightOutliersCheckBox.setEnabled(enabled);
+    }
+    
+    private void toggleSummaryOverlay() {
+        overlayEnabled = !overlayEnabled;
+        
+        if (overlayEnabled) {
+            showSummaryOverlayButton.setText("Hide Summary Overlay");
+            showSummaryOverlayButton.setBackground(ACCENT);
+            showSummaryOverlayButton.setForeground(Color.WHITE);
+            setOverlayCheckboxesEnabled(true);
+            applySummaryOverlays();
+        } else {
+            showSummaryOverlayButton.setText("Show Summary Overlay");
+            showSummaryOverlayButton.setBackground(BG_LIGHT);
+            showSummaryOverlayButton.setForeground(FG_SECONDARY);
+            setOverlayCheckboxesEnabled(false);
+            removeSummaryOverlays();
+        }
+    }
+    
+    private void removeSummaryOverlays() {
+        if (chartPanel == null || chartPanel.getChart() == null) {
+            return;
+        }
+        
+        XYChart chart = chartPanel.getChart();
+        
+        // Remove all overlay series (series that start with overlay prefixes)
+        List<String> seriesToRemove = new ArrayList<>();
+        for (XYSeries series : chart.getSeriesMap().values()) {
+            String seriesName = series.getName();
+            if (seriesName.startsWith("overlay_mean_") ||
+                seriesName.startsWith("overlay_median_") ||
+                seriesName.startsWith("overlay_stddev_upper_") ||
+                seriesName.startsWith("overlay_stddev_lower_") ||
+                seriesName.startsWith("overlay_min_") ||
+                seriesName.startsWith("overlay_max_") ||
+                seriesName.startsWith("overlay_outlier_")) {
+                seriesToRemove.add(seriesName);
+            }
+        }
+        
+        for (String seriesName : seriesToRemove) {
+            chart.removeSeries(seriesName);
+        }
+        
+        chartPanel.repaint();
+    }
+    
+    private void applySummaryOverlays() {
+        if (chartPanel == null || chartPanel.getChart() == null) {
+            return;
+        }
+        
+        XYChart chart = chartPanel.getChart();
+        SummaryStatisticsState state = statisticsViewModel.getState();
+        
+        // Remove existing overlays first
+        removeSummaryOverlays();
+        
+        // Check if we have valid statistics
+        if (state == null || state.getColumnStats() == null || state.getColumnStats().isEmpty()) {
+            return;
+        }
+        
+        // Get the current chart's X and Y axis ranges
+        double minX = Double.MAX_VALUE;
+        double maxX = -Double.MAX_VALUE;
+        
+        // Find X range from existing series
+        for (XYSeries series : chart.getSeriesMap().values()) {
+            double[] xData = series.getXData();
+            if (xData != null && xData.length > 0) {
+                for (double x : xData) {
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                }
+            }
+        }
+        
+        if (minX == Double.MAX_VALUE || maxX == -Double.MAX_VALUE) {
+            // No data in chart, can't add overlays
+            return;
+        }
+        
+        // Get Y-axis columns from the current visualization
+        Set<String> yColumnsSet = new HashSet<>();
+        
+        // Try to identify Y-axis columns from the chart series
+        // (excluding overlay series and annotation series)
+        for (XYSeries series : chart.getSeriesMap().values()) {
+            String seriesName = series.getName();
+            // Filter out overlay series, annotation series (hl-, vl-, ann-), and special series like "Outliers"
+            if (!seriesName.startsWith("overlay_") && 
+                !seriesName.startsWith("hl-") && 
+                !seriesName.startsWith("vl-") && 
+                !seriesName.startsWith("ann-") &&
+                !seriesName.equals("Outliers") &&
+                !seriesName.equals("Data")) {
+                // Extract base column name from series name
+                // When colorBy is set, series names are "YColumn (Group)", so extract just "YColumn"
+                String baseColumnName = seriesName;
+                int parenIndex = seriesName.indexOf(" (");
+                if (parenIndex > 0) {
+                    // Series name has format "YColumn (Group)", extract just "YColumn"
+                    baseColumnName = seriesName.substring(0, parenIndex);
+                }
+                yColumnsSet.add(baseColumnName);
+            }
+        }
+        
+        List<String> yColumns = new ArrayList<>(yColumnsSet);
+        
+        // If we can't determine Y columns from series, use all numeric columns with stats
+        // that are currently displayed in the chart
+        if (yColumns.isEmpty()) {
+            // Fallback: use all columns that have statistics
+            yColumns.addAll(state.getColumnStats().keySet());
+        }
+        
+        // Apply overlays for each Y column that has statistics
+        for (String yColumnName : yColumns) {
+            SummaryStatisticsState.ColumnStatistics stats = state.getColumnStats().get(yColumnName);
+            if (stats == null) {
+                continue;
+            }
+            
+            try {
+                double mean = parseDouble(stats.getMean());
+                double median = parseDouble(stats.getMedian());
+                double stdDev = parseDouble(stats.getStandardDeviation());
+                double min = parseDouble(stats.getMin());
+                double max = parseDouble(stats.getMax());
+                
+                // Mean line
+                if (showMeanCheckBox.isSelected()) {
+                    addHorizontalLine(chart, mean, minX, maxX, "overlay_mean_" + yColumnName, 
+                                     "Mean (" + yColumnName + ")", new Color(100, 200, 100, 200));
+                }
+                
+                // Median line
+                if (showMedianCheckBox.isSelected()) {
+                    addHorizontalLine(chart, median, minX, maxX, "overlay_median_" + yColumnName,
+                                     "Median (" + yColumnName + ")", new Color(200, 150, 100, 200));
+                }
+                
+                // Standard deviation band
+                if (showStdDevBandCheckBox.isSelected()) {
+                    addStdDevBand(chart, mean, stdDev, minX, maxX, yColumnName);
+                }
+                
+                // Min/Max lines
+                if (showMinMaxCheckBox.isSelected()) {
+                    addHorizontalLine(chart, min, minX, maxX, "overlay_min_" + yColumnName,
+                                     "Min (" + yColumnName + ")", new Color(150, 150, 255, 150));
+                    addHorizontalLine(chart, max, minX, maxX, "overlay_max_" + yColumnName,
+                                     "Max (" + yColumnName + ")", new Color(150, 150, 255, 150));
+                }
+                
+                // Outliers (if information is available in state)
+                // if (highlightOutliersCheckBox.isSelected()) {
+                //     // TODO: Outlier detection requires additional data in ColumnStatistics
+                //     // For now, this is a no-op as per requirements
+                // }
+                
+            } catch (NumberFormatException e) {
+                // Skip this column if values can't be parsed
+                continue;
+            }
+        }
+        
+        chartPanel.repaint();
+    }
+    
+    private void addHorizontalLine(XYChart chart, double yValue, double minX, double maxX, 
+                                   String seriesName, String label, Color color) {
+        double[] xData = {minX, maxX};
+        double[] yData = {yValue, yValue};
+        XYSeries series = chart.addSeries(seriesName, xData, yData);
+        series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        series.setLineColor(color);
+        series.setLineWidth(1.5f);
+        series.setMarker(null);
+        series.setShowInLegend(true);
+    }
+    
+    private void addStdDevBand(XYChart chart, double mean, double stdDev, double minX, double maxX, String columnName) {
+        // Create upper and lower bounds
+        double upper = mean + stdDev;
+        double lower = mean - stdDev;
+        
+        // Add upper bound line
+        XYSeries upperSeries = chart.addSeries("overlay_stddev_upper_" + columnName, 
+                                               new double[]{minX, maxX}, 
+                                               new double[]{upper, upper});
+        upperSeries.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        upperSeries.setLineColor(new Color(255, 200, 100, 180));
+        upperSeries.setLineWidth(1.0f);
+        upperSeries.setLineStyle(new java.awt.BasicStroke(1.0f, java.awt.BasicStroke.CAP_BUTT, 
+                                                          java.awt.BasicStroke.JOIN_MITER, 10.0f, 
+                                                          new float[]{5.0f}, 0.0f));
+        upperSeries.setMarker(null);
+        upperSeries.setShowInLegend(false);
+        
+        // Add lower bound line
+        XYSeries lowerSeries = chart.addSeries("overlay_stddev_lower_" + columnName,
+                                               new double[]{minX, maxX},
+                                               new double[]{lower, lower});
+        lowerSeries.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
+        lowerSeries.setLineColor(new Color(255, 200, 100, 180));
+        lowerSeries.setLineWidth(1.0f);
+        lowerSeries.setLineStyle(new java.awt.BasicStroke(1.0f, java.awt.BasicStroke.CAP_BUTT,
+                                                          java.awt.BasicStroke.JOIN_MITER, 10.0f,
+                                                          new float[]{5.0f}, 0.0f));
+        lowerSeries.setMarker(null);
+        lowerSeries.setShowInLegend(false);
+        
+        // Note: XChart doesn't have native area fill between two series,
+        // so we use dashed lines to indicate the band boundaries
+    }
+    
+    private void updateOverlays() {
+        if (overlayEnabled && chartPanel != null && chartPanel.getChart() != null) {
+            applySummaryOverlays();
+        }
+    }
+    
+    private double parseDouble(String value) throws NumberFormatException {
+        if (value == null || value.trim().isEmpty()) {
+            throw new NumberFormatException("Empty value");
+        }
+        return Double.parseDouble(value.trim());
+    }
+    
+    private void updateOverlayButtonState(SummaryStatisticsState state) {
+        boolean shouldEnable = false;
+        
+        if (state != null) {
+            if (state.isCalculating()) {
+                shouldEnable = false;
+            } else if (state.getErrorMessage() != null) {
+                shouldEnable = false;
+            } else if (state.getColumnStats() != null && !state.getColumnStats().isEmpty()) {
+                // Check if we have a chart displayed
+                if (chartPanel != null && chartPanel.getChart() != null) {
+                    shouldEnable = true;
+                }
+            }
+        }
+        
+        showSummaryOverlayButton.setEnabled(shouldEnable);
+        
+        // If button becomes disabled, also disable overlay if it was enabled
+        if (!shouldEnable && overlayEnabled) {
+            overlayEnabled = false;
+            showSummaryOverlayButton.setText("Show Summary Overlay");
+            showSummaryOverlayButton.setBackground(BG_LIGHT);
+            showSummaryOverlayButton.setForeground(FG_SECONDARY);
+            setOverlayCheckboxesEnabled(false);
+            removeSummaryOverlays();
+        }
+    }
+    // <<< summary overlay helper methods
 
 
 
@@ -1298,6 +1656,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     // For now we support XYChart; heatmap can be added later.
                     displayChart(state.getXyChart());
                     // You could also use state.getTitle() to update a label if desired.
+                    
+                    // Update overlay button state when new chart is displayed
+                    SummaryStatisticsState statsState = statisticsViewModel.getState();
+                    updateOverlayButtonState(statsState);
                 }
             }
             // <<< visualization
@@ -1313,12 +1675,21 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     // Show error in table
                     statsTableModel.setRowCount(0);
                     statsTableModel.addRow(new Object[]{"Error", state.getErrorMessage()});
+                    updateOverlayButtonState(state);
                 } else if (state.isCalculating()) {
                     // Show loading state
                     statsTableModel.setRowCount(0);
                     statsTableModel.addRow(new Object[]{"Calculating...", ""});
+                    updateOverlayButtonState(state);
                 } else if (state.getColumnStats() != null) {
                     displayStatisticsTable(state.getColumnStats());
+                    updateOverlayButtonState(state);
+                    // If overlay is enabled, refresh it with new statistics
+                    if (overlayEnabled) {
+                        applySummaryOverlays();
+                    }
+                } else {
+                    updateOverlayButtonState(state);
                 }
             }
             //end

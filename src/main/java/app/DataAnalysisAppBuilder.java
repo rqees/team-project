@@ -44,6 +44,13 @@ import use_case.visualization.io.VisualizationInputBoundary;
 import use_case.visualization.io.VisualizationOutputBoundary;
 import use_case.visualization.model.PlotKindModelFactory;
 
+import interface_adapter.statistics.SummaryStatisticsController;
+import interface_adapter.statistics.SummaryStatisticsPresenter;
+import interface_adapter.statistics.SummaryStatisticsViewModel;
+import use_case.statistics.SummaryStatisticsInputBoundary;
+import use_case.statistics.SummaryStatisticsInteractor;
+import use_case.statistics.SummaryStatisticsOutputBoundary;
+
 
 public class DataAnalysisAppBuilder {
     private final JPanel cardPanel = new JPanel();
@@ -62,6 +69,8 @@ public class DataAnalysisAppBuilder {
     private final DataSubsetGateway dataSubsetGateway;
     private final SummaryReportGateway summaryReportGateway;
 
+    private SummaryStatisticsViewModel statisticsViewModel;
+
     public DataAnalysisAppBuilder() {
         cardPanel.setLayout(cardLayout);
                 // Single current dataset in memory
@@ -76,7 +85,9 @@ public class DataAnalysisAppBuilder {
         tableViewModel = new TableViewModel();
         loadViewModel = new LoadViewModel();
         visualizationViewModel = new VisualizationViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel, visualizationViewModel);
+        statisticsViewModel = new SummaryStatisticsViewModel();
+        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel,
+                loadViewModel, visualizationViewModel, statisticsViewModel);
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }
@@ -151,6 +162,30 @@ public class DataAnalysisAppBuilder {
             dataSetTableView.setTableGateway(tableGateway);
             return this;
         }
+
+    /**
+     * Wires the Statistics use case:
+     *  - SummaryStatisticsInteractor
+     *  - SummaryStatisticsPresenter
+     *  - SummaryStatisticsController
+     */
+    public DataAnalysisAppBuilder addStatisticsUseCase() {
+        SummaryStatisticsOutputBoundary statisticsPresenter =
+                new SummaryStatisticsPresenter(statisticsViewModel);
+
+        SummaryStatisticsInputBoundary statisticsInteractor =
+                new SummaryStatisticsInteractor(
+                        dataSubsetGateway,
+                        summaryReportGateway,
+                        statisticsPresenter
+                );
+
+        SummaryStatisticsController statisticsController =
+                new SummaryStatisticsController(statisticsInteractor);
+
+        dataSetTableView.setStatisticsController(statisticsController);
+        return this;
+    }
 
     /**
      * Loads sample data into the application.

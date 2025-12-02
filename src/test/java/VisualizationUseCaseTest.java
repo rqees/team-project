@@ -53,7 +53,7 @@ public class VisualizationUseCaseTest {
                 presenter,
                 plotKindModelFactory
         );
-        VisualizationController controller = new VisualizationController(interactor);
+        VisualizationController controller = new VisualizationController(interactor, tableGateway, presenter);
 
         // Create visualization input data
         // Using numeric columns from sample data: Age and Net Worth

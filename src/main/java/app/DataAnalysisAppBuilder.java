@@ -34,6 +34,7 @@ import javax.swing.*;
 import java.awt.*;
 import data_access.FileSaveDataSetDataAccessObject;
 import interface_adapter.visualization.VisualizationController;
+import interface_adapter.visualization.VisualizationMetadataUpdater;
 import interface_adapter.visualization.VisualizationPresenter;
 import interface_adapter.visualization.VisualizationViewModel;
 
@@ -156,10 +157,17 @@ public class DataAnalysisAppBuilder {
                     );
     
             VisualizationController controller =
-                    new VisualizationController(interactor);
-    
+                    new VisualizationController(interactor, tableGateway, presenter);
+
             dataSetTableView.setVisualizationController(controller);
-            dataSetTableView.setTableGateway(tableGateway);
+            
+            // Set up automatic metadata updates when table data changes
+            VisualizationMetadataUpdater metadataUpdater = new VisualizationMetadataUpdater(
+                    (VisualizationPresenter) presenter,
+                    tableGateway
+            );
+            metadataUpdater.register(tableViewModel);
+            
             return this;
         }
 

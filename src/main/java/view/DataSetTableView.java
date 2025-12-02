@@ -6,9 +6,13 @@ import entity.Column;
 import entity.DataType;
 
 import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+
+import use_case.cleaner.DataCleaningController;
 
 public class DataSetTableView extends JFrame {
 
@@ -19,6 +23,10 @@ public class DataSetTableView extends JFrame {
     private DefaultTableModel tableModel;
     private JScrollPane scrollPane;
 
+    private DataSet dataSet;
+    private DataCleaningController controller;
+    private boolean updatingFromCleaner = false;
+
     public DataSetTableView() {
         setTitle("Data Analysis - Table View");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -27,13 +35,14 @@ public class DataSetTableView extends JFrame {
 
         initializeComponents();
         layoutComponents();
+        attachTableListener();
     }
 
     private void initializeComponents() {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table read-only
+                return true; // Make table editable
             }
         };
 
@@ -67,7 +76,62 @@ public class DataSetTableView extends JFrame {
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
+    /**
+     * TableModelListener that forwards user edits to the controller.
+     */
+    private void attachTableListener() {
+        tableModel.addTableModelListener(e -> {
+            // Ignore events while we are programmatically updating the table
+            if (updatingFromCleaner) {
+                return;
+            }
+
+
+            if (e.getType() != TableModelEvent.UPDATE) {
+                return;
+            }
+
+
+            int row = e.getFirstRow();
+            int column = e.getColumn();
+
+
+            // Sometimes UPDATE can be for all columns (-1)
+            // only care about single cell edit
+            if (row < 0 || column < 0) {
+                return;
+            }
+
+            // if there is no controller wired up yet
+            if (controller == null) {
+                return;
+            }
+
+
+            Object value = tableModel.getValueAt(row, column);
+            String rawValue = (value == null) ? null : value.toString();
+
+            controller.handleUserEdit(row, column, rawValue);
+        });
+    }
+
+    /**
+     * Update the displayed column header in the JTable after a successful
+     * header edit in the underlying DataSet.
+     *
+     * @param colIndex  the index of the column whose header should change
+     * @param newHeader the new column header text to display
+     */
+    public void updateColumnHeader(int colIndex, String newHeader) {
+        table.getColumnModel().getColumn(colIndex).setHeaderValue(newHeader);
+
+        // Force the header to repaint so the change appears immediately
+        table.getTableHeader().repaint();
+    }
+
     public void displayDataSet(DataSet dataSet) {
+        this.dataSet = dataSet;
+
         if (dataSet == null) {
             JOptionPane.showMessageDialog(this,
                     "No dataset to display",
@@ -90,9 +154,9 @@ public class DataSetTableView extends JFrame {
             return;
         }
 
-        int numColumns = columns.size();
-        for (int i = 0; i < numColumns; i++) {
-            tableModel.addColumn("Column " + (i + 1));
+        // change this to use actual header name
+        for (Column column : columns) {
+            tableModel.addColumn(column.getHeader());
         }
 
         for (DataRow row : rows) {
@@ -103,6 +167,23 @@ public class DataSetTableView extends JFrame {
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(DEFAULT_COLUMN_WIDTH);
         }
+    }
+
+    // helper for dataCleaningController
+    public void setUpdatingFromCleaner(boolean updatingFromCleaner) {
+        this.updatingFromCleaner = updatingFromCleaner;
+    }
+
+    public void updateCellFromCleaner(int rowIndex, int colIndex, String cleanedValue) {
+        tableModel.setValueAt(cleanedValue, rowIndex, colIndex);
+    }
+
+    public void refreshFromDataSet(DataSet dataSet) {
+        displayDataSet(dataSet);
+    }
+
+    public void setController(DataCleaningController controller) {
+        this.controller = controller;
     }
 
     public static void main(String[] args) {

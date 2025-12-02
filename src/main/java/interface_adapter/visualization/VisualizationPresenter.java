@@ -11,12 +11,12 @@ import use_case.visualization.io.VisualizationOutputData;
 import use_case.visualization.model.Annotation;
 import use_case.visualization.model.DataPoint;
 import use_case.visualization.model.HeatmapModel;
-import use_case.visualization.model.Matrix;
 import use_case.visualization.model.PlotKind;
 import use_case.visualization.model.PointPlotModel;
 import use_case.visualization.model.VisualizationModel;
 
 import java.awt.*;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +31,12 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
     @Override
     public void present(VisualizationOutputData outputData) {
         VisualizationModel model = outputData.getVisualizationModel();
+        
+        // Preserve existing column metadata from current state
+        VisualizationState currentState = viewModel.getState();
+        List<String> numericColumns = currentState != null ? currentState.getNumericColumnNames() : Collections.emptyList();
+        List<String> categoricalColumns = currentState != null ? currentState.getCategoricalColumnNames() : Collections.emptyList();
+        List<String> allColumns = currentState != null ? currentState.getAllColumnNames() : Collections.emptyList();
 
         if (model instanceof PointPlotModel pointModel) {
             XYChart chart = buildXYChartFromPointModel(pointModel);
@@ -39,18 +45,30 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
                     chart,
                     null,
                     pointModel.getTitle(),
-                    null
+                    null,
+                    numericColumns,
+                    categoricalColumns,
+                    allColumns
             );
             viewModel.setState(state);
         }
         else if (model instanceof HeatmapModel heatmapModel) {
-            Matrix matrix = heatmapModel.getMatrix();
+            use_case.visualization.model.Matrix matrix = heatmapModel.getMatrix();
+            // Convert use_case Matrix to interface_adapter VisualizationMatrix
+            VisualizationMatrix vizMatrix = new VisualizationMatrix(
+                    matrix.getValues(),
+                    matrix.getRowLabels(),
+                    matrix.getColLabels()
+            );
 
             VisualizationState state = new VisualizationState(
                     null,
-                    matrix,
+                    vizMatrix,
                     heatmapModel.getTitle(),
-                    null
+                    null,
+                    numericColumns,
+                    categoricalColumns,
+                    allColumns
             );
             viewModel.setState(state);
         }
@@ -58,10 +76,34 @@ public class VisualizationPresenter implements VisualizationOutputBoundary {
             VisualizationState state = new VisualizationState(
                     null, null,
                     "Unsupported visualization",
-                    "Unsupported VisualizationModel implementation: " + model.getClass().getSimpleName()
+                    "Unsupported VisualizationModel implementation: " + model.getClass().getSimpleName(),
+                    numericColumns,
+                    categoricalColumns,
+                    allColumns
             );
             viewModel.setState(state);
         }
+    }
+    
+    /**
+     * Update column metadata in the ViewModel.
+     * Called when table data changes.
+     */
+    public void updateColumnMetadata(List<String> numericColumnNames,
+                                    List<String> categoricalColumnNames,
+                                    List<String> allColumnNames) {
+        // Preserve existing visualization if any
+        VisualizationState currentState = viewModel.getState();
+        VisualizationState newState = new VisualizationState(
+                currentState != null ? currentState.getXyChart() : null,
+                currentState != null ? currentState.getHeatmapMatrix() : null,
+                currentState != null ? currentState.getTitle() : "Visualization",
+                currentState != null ? currentState.getErrorMessage() : null,
+                numericColumnNames,
+                categoricalColumnNames,
+                allColumnNames
+        );
+        viewModel.setState(newState);
     }
     // =========================================================
     // Point-plot → XChart (SCATTER, LINE, BAR, HISTOGRAM)

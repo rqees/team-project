@@ -4,6 +4,7 @@ import view.DataSetTableView;
 
 import javax.swing.*;
 import java.awt.*;
+import com.formdev.flatlaf.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -19,6 +20,7 @@ public class Main {
                     .addTableDisplayUseCase()
                     .addLoadUseCase()
                     .loadSampleData()  // Load sample data through builder
+                    .addVisualizationUseCase()
                     .build();
 
             application.setSize(1400, 900);
@@ -29,5 +31,15 @@ public class Main {
             DataSetTableView tableView = appBuilder.getDataSetTableView();
             tableView.loadTable();
         });
+    }
+    private static void setupModernDarkTheme() {
+        try {
+            // Use system look and feel as base
+            UIManager.setLookAndFeel(new FlatDarculaLaf());
+    
+            
+        } catch (Exception e) {
+            System.err.println("Failed to set theme: " + e.getMessage());
+        }
     }
 }

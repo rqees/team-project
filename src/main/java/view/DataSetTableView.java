@@ -42,6 +42,8 @@ import java.io.File;
 import java.util.*;
 import java.util.List;
 
+import data_access.KaggleDownloader;
+
 /**
  * Main table view for the Data Analysis Program.
  * Implements Use Case 2: Table Format Display
@@ -509,7 +511,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         });
 
         kaggleItem.addActionListener(e -> {
-//            TODO implement loadkaggleusecase
+            showKaggleImportDialog();
         });
 
         loadViewModel.addPropertyChangeListener(evt -> {
@@ -527,6 +529,102 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     break;
             }
         });
+    }
+
+    /**
+     * Shows a dialog that asks for Kaggle dataset information (but not
+     * credentials), then downloads the requested CSV using the Kaggle
+     * HTTP API and forwards the downloaded file to the existing Load use case.
+     *
+     * <p>Authentication is taken from the environment variables
+     * {@code KAGGLE_USERNAME} and {@code KAGGLE_KEY}.</p>
+     */
+    private void showKaggleImportDialog() {
+        if (loadController == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Load controller is not available.",
+                    "Kaggle Import",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BG_DARK);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+
+        JLabel idLabel = new JLabel("Dataset ID (owner-slug/dataset-slug):");
+        idLabel.setForeground(FG_PRIMARY);
+        panel.add(idLabel, gbc);
+
+        gbc.gridx = 1;
+        JTextField idField = new JTextField(25);
+        idField.setBackground(BG_MEDIUM);
+        idField.setForeground(FG_PRIMARY);
+        panel.add(idField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        JLabel fileLabel = new JLabel("CSV file name:");
+        fileLabel.setForeground(FG_PRIMARY);
+        panel.add(fileLabel, gbc);
+
+        gbc.gridx = 1;
+        JTextField fileField = new JTextField(25);
+        fileField.setBackground(BG_MEDIUM);
+        fileField.setForeground(FG_PRIMARY);
+        panel.add(fileField, gbc);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Import from Kaggle",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String kaggleId = idField.getText().trim();
+        String fileName = fileField.getText().trim();
+
+        if (kaggleId.isEmpty() || fileName.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please provide a dataset id and CSV file name.",
+                    "Missing Information",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Run download in the background to keep UI responsive.
+        SwingWorker<File, Void> worker = new SwingWorker<>() {
+            @Override
+            protected File doInBackground() throws Exception {
+                return KaggleDownloader.downloadCsv(kaggleId, fileName);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    File downloaded = get();
+                    loadController.execute(downloaded);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    JOptionPane.showMessageDialog(DataSetTableView.this,
+                            "Failed to import from Kaggle:\n" + cause.getMessage(),
+                            "Kaggle Import Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+
+        worker.execute();
     }
 
     private void promptSaveDialog() {
@@ -966,15 +1064,16 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                     boolean isSelected, boolean cellHasFocus) {
                 Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                
-                if (value instanceof PlotKind plotKind) {
+
+                if (value instanceof PlotKind) {
+                    PlotKind plotKind = (PlotKind) value;
                     boolean enabled = isPlotTypeEnabled(plotKind, numSelected);
                     c.setEnabled(enabled);
                     if (!enabled) {
                         c.setForeground(Color.GRAY);
                     }
                 }
-                
+
                 return c;
             }
         });

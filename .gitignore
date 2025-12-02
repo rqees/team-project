@@ -33,3 +33,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Local Kaggle API credentials (never commit)
+kaggle.env

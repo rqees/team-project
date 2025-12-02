@@ -14,13 +14,13 @@ public class PlotKindModelFactory {
 
     public PlotKindModelFactory() {
         VisualizationModelFactory pointFactory = new PointPlotVisualizationFactory();
-        VisualizationModelFactory heatmapFactory = new HeatmapVisualizationFactory();
+        // VisualizationModelFactory heatmapFactory = new HeatmapVisualizationFactory();
 
         factories.put(PlotKind.SCATTER, pointFactory);
         factories.put(PlotKind.LINE, pointFactory);
         factories.put(PlotKind.BAR, pointFactory);
         factories.put(PlotKind.HISTOGRAM, pointFactory);
-        factories.put(PlotKind.HEATMAP, heatmapFactory);
+        // factories.put(PlotKind.HEATMAP, heatmapFactory);
     }
 
     public VisualizationModel create(VisualizationInputData input,

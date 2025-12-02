@@ -11,6 +11,20 @@ import interface_adapter.table.TableViewModel;
 import use_case.dataset.CurrentTableGateway;
 import use_case.visualization.io.VisualizationInputData;
 import use_case.visualization.model.PlotKind;
+import entity.Column;
+import entity.DataSet;
+import entity.DataSubsetSpec;
+import entity.DataType;
+
+// >>> visualization
+import interface_adapter.visualization.VisualizationController;
+import interface_adapter.visualization.VisualizationState;
+import interface_adapter.visualization.VisualizationViewModel;
+import org.knowm.xchart.XChartPanel;
+import org.knowm.xchart.XYChart;
+// <<< visualization
+
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,6 +37,8 @@ import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.util.*;
+import java.util.List;
 
 /**
  * Main table view for the Data Analysis Program.
@@ -60,6 +76,15 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JPanel statsPanel;
     private JTextArea statsTextArea;
 
+        // >>> visualization
+    /** Panel that holds the current visualization (XChart or heatmap). */
+    private JPanel visualizationPanel;
+    /** XChartPanel used to render XYChart charts. */
+    private XChartPanel<XYChart> chartPanel;
+    // <<< visualization
+
+
+
     private JTextField searchField;
     private JButton searchButton;
     private JSlider zoomSlider;
@@ -77,7 +102,28 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private LoadController loadController;
     private final LoadViewModel loadViewModel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel) {
+        // >>> visualization
+        private VisualizationController visualizationController;
+        private final VisualizationViewModel visualizationViewModel;
+        // <<< visualization
+        
+        // Column selection for visualization
+        private final Set<Integer> selectedColumns = new HashSet<>();
+        private CurrentTableGateway tableGateway;
+        private DataSubsetSpec currentSubsetSpec;
+        
+        // Visualization controls - Role-based
+        private JPanel visualizationControlPanel;
+        private JComboBox<PlotKind> plotTypeComboBox;
+        private JComboBox<String> xAxisComboBox;
+        private JPanel yAxisPanel;
+        private java.util.List<JComboBox<String>> yAxisComboBoxes;
+        private JButton addYAxisButton;
+        private JComboBox<String> colorByComboBox;
+        private JButton visualizeButton;
+        private JLabel selectedColumnsLabel;
+
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel, VisualizationViewModel visualizationViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -85,6 +131,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.tableViewModel.addPropertyChangeListener(this);
 
         this.loadViewModel = loadViewModel;
+        
+        this.visualizationViewModel = visualizationViewModel;
+        this.visualizationViewModel.addPropertyChangeListener(this);
+        // <<< visualization
 
         initializeComponents();
         layoutComponents();
@@ -220,62 +270,190 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         statsScrollPane.setBorder(BorderFactory.createEmptyBorder());
         statsPanel.add(statsScrollPane, BorderLayout.CENTER);
         statsPanel.setPreferredSize(new Dimension(250, 0));
-    }
-
-    private void layoutComponents() {
-        setLayout(new BorderLayout(10, 10));
-        setBackground(BG_DARK);
-
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
-        topPanel.setBackground(BG_MEDIUM);
-
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
-        leftPanel.setBackground(BG_MEDIUM);
-
-        JLabel titleLabel = new JLabel("Data Analysis Platform");
-        titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 24));
-        titleLabel.setForeground(FG_PRIMARY);
-        leftPanel.add(titleLabel);
-        leftPanel.add(menuBar);
-
-        topPanel.add(leftPanel, BorderLayout.WEST);
-
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        searchPanel.setBackground(BG_MEDIUM);
-        JLabel searchLabel = new JLabel("Search: ");
-        searchLabel.setForeground(FG_PRIMARY);
-        searchPanel.add(searchLabel);
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
-        topPanel.add(searchPanel, BorderLayout.EAST);
-
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
-        centerPanel.setBorder(new EmptyBorder(0, 15, 10, 15));
-        centerPanel.setBackground(BG_DARK);
-        centerPanel.add(tableScrollPane, BorderLayout.CENTER);
-        centerPanel.add(statsPanel, BorderLayout.EAST);
-
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
-        bottomPanel.setBackground(BG_DARK);
-
-        JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-        zoomPanel.setBackground(BG_DARK);
-        JLabel zoomLabelText = new JLabel("Zoom: ");
-        zoomLabelText.setForeground(FG_PRIMARY);
-        zoomPanel.add(zoomLabelText);
-        zoomPanel.add(zoomOutButton);
-        zoomPanel.add(zoomSlider);
-        zoomPanel.add(zoomInButton);
-        zoomPanel.add(zoomLabel);
-
-        bottomPanel.add(zoomPanel, BorderLayout.EAST);
-
-        add(topPanel, BorderLayout.NORTH);
-        add(centerPanel, BorderLayout.CENTER);
-        add(bottomPanel, BorderLayout.SOUTH);
-    }
+    
+            // >>> visualization: create panel that will hold the chart / heatmap
+            visualizationPanel = new JPanel(new BorderLayout());
+            visualizationPanel.setBackground(BG_DARK);
+            visualizationPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Visualization",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
+            ));
+            visualizationPanel.setPreferredSize(new Dimension(0, 250)); // height at bottom
+            
+            // Create visualization control panel - Role-based
+            visualizationControlPanel = new JPanel();
+            visualizationControlPanel.setLayout(new BoxLayout(visualizationControlPanel, BoxLayout.Y_AXIS));
+            visualizationControlPanel.setBackground(BG_DARK);
+            visualizationControlPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Visualization Configuration",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
+            ));
+            
+            // Plot type selector (first)
+            JPanel plotTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            plotTypePanel.setBackground(BG_DARK);
+            JLabel plotTypeLabel = new JLabel("Plot Type:");
+            plotTypeLabel.setForeground(FG_PRIMARY);
+            plotTypePanel.add(plotTypeLabel);
+            plotTypeComboBox = new JComboBox<>();
+            plotTypeComboBox.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+            plotTypeComboBox.setPreferredSize(new Dimension(120, 25));
+            plotTypeComboBox.setBackground(BG_MEDIUM);
+            plotTypeComboBox.setForeground(FG_PRIMARY);
+            filterPlotTypes();
+            plotTypeComboBox.addActionListener(e -> updateRoleSelectors());
+            plotTypePanel.add(plotTypeComboBox);
+            visualizationControlPanel.add(plotTypePanel);
+            
+            // X-Axis role selector
+            JPanel xAxisPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            xAxisPanel.setBackground(BG_DARK);
+            JLabel xAxisLabel = new JLabel("X-Axis:");
+            xAxisLabel.setForeground(FG_PRIMARY);
+            xAxisPanel.add(xAxisLabel);
+            xAxisComboBox = new JComboBox<>();
+            xAxisComboBox.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+            xAxisComboBox.setPreferredSize(new Dimension(150, 25));
+            xAxisComboBox.setBackground(BG_MEDIUM);
+            xAxisComboBox.setForeground(FG_PRIMARY);
+            xAxisComboBox.addItem("(Select column)");
+            xAxisPanel.add(xAxisComboBox);
+            visualizationControlPanel.add(xAxisPanel);
+            
+            // Y-Axis role selector (supports multiple)
+            JPanel yAxisContainer = new JPanel();
+            yAxisContainer.setLayout(new BoxLayout(yAxisContainer, BoxLayout.Y_AXIS));
+            yAxisContainer.setBackground(BG_DARK);
+            JPanel yAxisHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            yAxisHeader.setBackground(BG_DARK);
+            JLabel yAxisLabel = new JLabel("Y-Axis:");
+            yAxisLabel.setForeground(FG_PRIMARY);
+            yAxisHeader.add(yAxisLabel);
+            addYAxisButton = new JButton("+");
+            addYAxisButton.setFont(new Font(FONT_NAME, Font.BOLD, 12));
+            addYAxisButton.setPreferredSize(new Dimension(30, 25));
+            addYAxisButton.setBackground(BG_LIGHT);
+            addYAxisButton.setForeground(FG_PRIMARY);
+            addYAxisButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            addYAxisButton.addActionListener(e -> addYAxisSelector());
+            yAxisHeader.add(addYAxisButton);
+            yAxisContainer.add(yAxisHeader);
+            
+            yAxisPanel = new JPanel();
+            yAxisPanel.setLayout(new BoxLayout(yAxisPanel, BoxLayout.Y_AXIS));
+            yAxisPanel.setBackground(BG_DARK);
+            yAxisComboBoxes = new ArrayList<>();
+            addYAxisSelector(); // Add first Y-axis selector
+            yAxisContainer.add(yAxisPanel);
+            visualizationControlPanel.add(yAxisContainer);
+            
+            // Color By role selector (optional)
+            JPanel colorByPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            colorByPanel.setBackground(BG_DARK);
+            JLabel colorByLabel = new JLabel("Color By:");
+            colorByLabel.setForeground(FG_PRIMARY);
+            colorByPanel.add(colorByLabel);
+            colorByComboBox = new JComboBox<>();
+            colorByComboBox.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+            colorByComboBox.setPreferredSize(new Dimension(150, 25));
+            colorByComboBox.setBackground(BG_MEDIUM);
+            colorByComboBox.setForeground(FG_PRIMARY);
+            colorByComboBox.addItem("(None)");
+            colorByPanel.add(colorByComboBox);
+            visualizationControlPanel.add(colorByPanel);
+            
+            // Visualize button and status
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+            buttonPanel.setBackground(BG_DARK);
+            visualizeButton = new JButton("Visualize");
+            visualizeButton.setFont(new Font(FONT_NAME, Font.BOLD, 12));
+            visualizeButton.setFocusPainted(false);
+            visualizeButton.setEnabled(false);
+            visualizeButton.setBackground(ACCENT);
+            visualizeButton.setForeground(Color.WHITE);
+            visualizeButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+            visualizeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            buttonPanel.add(visualizeButton);
+            
+            selectedColumnsLabel = new JLabel("(Click column headers to select)");
+            selectedColumnsLabel.setFont(new Font(FONT_NAME, Font.PLAIN, 10));
+            selectedColumnsLabel.setForeground(FG_SECONDARY);
+            buttonPanel.add(selectedColumnsLabel);
+            visualizationControlPanel.add(buttonPanel);
+    
+    
+            // <<< visualization
+        }
+        private void layoutComponents() {
+            setLayout(new BorderLayout(10, 10));
+            setBackground(BG_DARK);
+        
+            JPanel topPanel = new JPanel(new BorderLayout());
+            topPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
+            topPanel.setBackground(BG_MEDIUM);
+        
+            JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+            leftPanel.setBackground(BG_MEDIUM);
+        
+            JLabel titleLabel = new JLabel("Data Analysis Platform");
+            titleLabel.setFont(new Font(FONT_NAME, Font.BOLD, 24));
+            titleLabel.setForeground(FG_PRIMARY);
+            leftPanel.add(titleLabel);
+            leftPanel.add(menuBar);
+        
+            topPanel.add(leftPanel, BorderLayout.WEST);
+        
+            JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            searchPanel.setBackground(BG_MEDIUM);
+            JLabel searchLabel = new JLabel("Search: ");
+            searchLabel.setForeground(FG_PRIMARY);
+            searchPanel.add(searchLabel);
+            searchPanel.add(searchField);
+            searchPanel.add(searchButton);
+            topPanel.add(searchPanel, BorderLayout.EAST);
+        
+            JPanel centerPanel = new JPanel(new BorderLayout(10, 0));
+            centerPanel.setBorder(new EmptyBorder(0, 15, 10, 15));
+            centerPanel.setBackground(BG_DARK);
+            centerPanel.add(tableScrollPane, BorderLayout.CENTER);
+            centerPanel.add(statsPanel, BorderLayout.EAST);
+        
+            JPanel bottomPanel = new JPanel(new BorderLayout());
+            bottomPanel.setBorder(new EmptyBorder(5, 15, 10, 15));
+            bottomPanel.setBackground(BG_DARK);
+        
+            JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+            zoomPanel.setBackground(BG_DARK);
+            JLabel zoomLabelText = new JLabel("Zoom: ");
+            zoomLabelText.setForeground(FG_PRIMARY);
+            zoomPanel.add(zoomLabelText);
+            zoomPanel.add(zoomOutButton);
+            zoomPanel.add(zoomSlider);
+            zoomPanel.add(zoomInButton);
+            zoomPanel.add(zoomLabel);
+        
+            bottomPanel.add(zoomPanel, BorderLayout.NORTH);
+            
+            // >>> ADD VISUALIZATION PANELS HERE
+            // Create a panel to hold both visualization control and visualization display
+            JPanel vizContainer = new JPanel(new BorderLayout(10, 10));
+            vizContainer.setBackground(BG_DARK);
+            vizContainer.add(visualizationControlPanel, BorderLayout.WEST);
+            vizContainer.add(visualizationPanel, BorderLayout.CENTER);
+            
+            bottomPanel.add(vizContainer, BorderLayout.CENTER);
+            // <<< END VISUALIZATION PANELS
+        
+            add(topPanel, BorderLayout.NORTH);
+            add(centerPanel, BorderLayout.CENTER);
+            add(bottomPanel, BorderLayout.SOUTH);
+        }
 
     private void setupEventHandlers() {
         searchButton.addActionListener(e -> performSearch());
@@ -303,6 +481,13 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 updateTableZoom();
             }
         });
+                // Visualization button handler
+                visualizeButton.addActionListener(e -> performVisualization());
+        
+                // Update controls when selection changes
+                xAxisComboBox.addActionListener(e -> updateVisualizeButtonState());
+                colorByComboBox.addActionListener(e -> updateVisualizeButtonState());
+        
 
         loadCSVItem.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
@@ -862,6 +1047,23 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
     }
+    
+
+    // >>> visualization: helper to update the chart panel from the ViewModel state
+    private void displayChart(XYChart chart) {
+        visualizationPanel.removeAll();
+
+        if (chart != null) {
+            chartPanel = new XChartPanel<>(chart);
+            visualizationPanel.add(chartPanel, BorderLayout.CENTER);
+        }
+
+        visualizationPanel.revalidate();
+        visualizationPanel.repaint();
+    }
+    // <<< visualization
+
+
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
@@ -899,6 +1101,22 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     displayTableData(state.getColumnHeaders(), state.getRowData());
                 }
             }
+            // >>> visualization: Handle VisualizationState
+            else if (newValue instanceof VisualizationState) {
+                final VisualizationState state = (VisualizationState) newValue;
+
+                if (state.getErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getErrorMessage(),
+                            "Visualization Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } else {
+                    // For now we support XYChart; heatmap can be added later.
+                    displayChart(state.getXyChart());
+                    // You could also use state.getTitle() to update a label if desired.
+                }
+            }
+            // <<< visualization
         }
     }
     
@@ -935,9 +1153,16 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         // TODO: implement when SaveController is created
     }
 
-    public void setVisualizationController(Object controller) {
-        // TODO: implement when VisualizationController is created
+      // >>> visualization
+      public void setVisualizationController(VisualizationController controller) {
+        this.visualizationController = controller;
     }
+    
+    public void setTableGateway(CurrentTableGateway gateway) {
+        this.tableGateway = gateway;
+    }
+    // <<< visualization
+
 
     public void updateSummaryStats(String stats) {
         statsTextArea.setText(stats);

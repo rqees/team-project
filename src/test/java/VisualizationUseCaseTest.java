@@ -71,6 +71,7 @@ public class VisualizationUseCaseTest {
                 subsetSpec,
                 xColumns,
                 yColumns,
+                null,
                 "Age vs Net Worth"
         );
 

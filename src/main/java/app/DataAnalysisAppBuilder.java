@@ -160,6 +160,7 @@ public class DataAnalysisAppBuilder {
                 new VisualizationController(interactor);
 
         dataSetTableView.setVisualizationController(controller);
+        dataSetTableView.setTableGateway(tableGateway);
         return this;
     }
 

@@ -24,7 +24,9 @@ import interface_adapter.visualization.VisualizationViewModel;
 import org.knowm.xchart.XChartPanel;
 import org.knowm.xchart.XYChart;
 // <<< visualization
-
+import interface_adapter.statistics.SummaryStatisticsController;
+import interface_adapter.statistics.SummaryStatisticsState;
+import interface_adapter.statistics.SummaryStatisticsViewModel;
 
 
 import javax.swing.*;
@@ -110,6 +112,16 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private VisualizationController visualizationController;
         private final VisualizationViewModel visualizationViewModel;
         // <<< visualization
+
+    // Statistics components
+    private SummaryStatisticsController statisticsController;
+    private final SummaryStatisticsViewModel statisticsViewModel;
+
+    // Statistics display
+    private JTable statsTable;
+    private DefaultTableModel statsTableModel;
+    private JScrollPane statsScrollPane;
+    private JButton calculateStatsButton;
         
         // Column selection for visualization
         private final Set<Integer> selectedColumns = new HashSet<>();
@@ -127,7 +139,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private JButton visualizeButton;
         private JLabel selectedColumnsLabel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel, VisualizationViewModel visualizationViewModel) {
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel,
+                            VisualizationViewModel visualizationViewModel, SummaryStatisticsViewModel statisticsViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -139,6 +152,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.visualizationViewModel = visualizationViewModel;
         this.visualizationViewModel.addPropertyChangeListener(this);
         // <<< visualization
+
+        this.statisticsViewModel = statisticsViewModel;
+        this.statisticsViewModel.addPropertyChangeListener(this);
 
         initializeComponents();
         layoutComponents();
@@ -396,6 +412,84 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     
     
             // <<< visualization
+
+        // ===== Statistics Panel (Table Format) =====
+        statsPanel = new JPanel(new BorderLayout(5, 5));
+        statsPanel.setBackground(BG_DARK);
+        statsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        // Title panel with calculate button
+        JPanel statsTitlePanel = new JPanel(new BorderLayout());
+        statsTitlePanel.setBackground(BG_DARK);
+
+        JLabel statsTitle = new JLabel("Summary Statistics");
+        statsTitle.setFont(new Font(FONT_NAME, Font.BOLD, 14));
+        statsTitle.setForeground(FG_PRIMARY);
+        statsTitlePanel.add(statsTitle, BorderLayout.WEST);
+
+        calculateStatsButton = new JButton("Calculate");
+        calculateStatsButton.setFont(new Font(FONT_NAME, Font.BOLD, 11));
+        calculateStatsButton.setBackground(ACCENT);
+        calculateStatsButton.setForeground(Color.WHITE);
+        calculateStatsButton.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        calculateStatsButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        calculateStatsButton.setFocusPainted(false);
+        statsTitlePanel.add(calculateStatsButton, BorderLayout.EAST);
+
+        // Statistics table
+        statsTableModel = new DefaultTableModel(
+                new String[]{"Metric", "Value"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        statsTable = new JTable(statsTableModel);
+        statsTable.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        statsTable.setBackground(BG_MEDIUM);
+        statsTable.setForeground(FG_PRIMARY);
+        statsTable.setGridColor(BG_LIGHT);
+        statsTable.setRowHeight(24);
+        statsTable.setShowGrid(true);
+        statsTable.setIntercellSpacing(new Dimension(1, 1));
+
+        // Style the header
+        statsTable.getTableHeader().setBackground(BG_LIGHT);
+        statsTable.getTableHeader().setForeground(FG_PRIMARY);
+        statsTable.getTableHeader().setFont(new Font(FONT_NAME, Font.BOLD, 11));
+
+        // Right-align the "Value" column
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
+        rightRenderer.setBackground(BG_MEDIUM);
+        rightRenderer.setForeground(FG_PRIMARY);
+        statsTable.getColumnModel().getColumn(1).setCellRenderer(rightRenderer);
+
+        // Make "Metric" column wider
+        statsTable.getColumnModel().getColumn(0).setPreferredWidth(150);
+        statsTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+
+        statsScrollPane = new JScrollPane(statsTable);
+        statsScrollPane.setBackground(BG_DARK);
+        statsScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        statsScrollPane.getViewport().setBackground(BG_MEDIUM);
+
+        // Instructions label
+        JLabel instructionsLabel = new JLabel(
+                "<html><center>Click column headers to select<br/>then click Calculate</center></html>");
+        instructionsLabel.setFont(new Font(FONT_NAME, Font.ITALIC, 10));
+        instructionsLabel.setForeground(FG_SECONDARY);
+        instructionsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        instructionsLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+
+        statsPanel.add(statsTitlePanel, BorderLayout.NORTH);
+        statsPanel.add(statsScrollPane, BorderLayout.CENTER);
+        statsPanel.add(instructionsLabel, BorderLayout.SOUTH);
+        statsPanel.setPreferredSize(new Dimension(280, 0));
         }
         private void layoutComponents() {
             setLayout(new BorderLayout(10, 10));
@@ -527,6 +621,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     break;
             }
         });
+        // Statistics calculate button handler
+        calculateStatsButton.addActionListener(e -> performCalculateStatistics());
     }
 
     private void promptSaveDialog() {
@@ -696,6 +792,91 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
     }
+
+    private void performCalculateStatistics() {
+        if (statisticsController == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Statistics controller not initialized",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Get selected columns
+        List<String> selectedColumnNames = getSelectedColumnNames();
+
+        if (selectedColumnNames.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please select columns by clicking on column headers",
+                    "No Columns Selected",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Filter for numeric columns only
+        List<String> numericColumns = getNumericColumnNames();
+        List<String> selectedNumericColumns = new ArrayList<>();
+        for (String colName : selectedColumnNames) {
+            if (numericColumns.contains(colName)) {
+                selectedNumericColumns.add(colName);
+            }
+        }
+
+        if (selectedNumericColumns.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No numeric columns selected. Please select numeric columns.",
+                    "No Numeric Data",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Calculate statistics for all rows of selected columns
+        int totalRows = dataTable.getRowCount();
+        statisticsController.calculateStatisticsAllRows(
+                1,  // dataSubsetId
+                "Summary Statistics",  // reportName
+                "current-dataset",  // datasetId
+                selectedNumericColumns,
+                totalRows
+        );
+    }
+
+    private void displayStatisticsTable(Map<String, SummaryStatisticsState.ColumnStatistics> columnStats) {
+        if (columnStats == null || columnStats.isEmpty()) {
+            statsTableModel.setRowCount(0);
+            statsTableModel.addRow(new Object[]{"No data", "N/A"});
+            return;
+        }
+
+        statsTableModel.setRowCount(0);
+
+        // Group statistics by column
+        for (Map.Entry<String, SummaryStatisticsState.ColumnStatistics> entry : columnStats.entrySet()) {
+            String columnName = entry.getKey();
+            SummaryStatisticsState.ColumnStatistics stats = entry.getValue();
+
+            // Add column header row (bold via HTML)
+            statsTableModel.addRow(new Object[]{
+                    "<html><b>" + columnName + "</b></html>",
+                    ""
+            });
+
+            // Add statistics rows
+            statsTableModel.addRow(new Object[]{"  Mean", stats.getMean()});
+            statsTableModel.addRow(new Object[]{"  Median", stats.getMedian()});
+            statsTableModel.addRow(new Object[]{"  Std Dev", stats.getStandardDeviation()});
+            statsTableModel.addRow(new Object[]{"  Min", stats.getMin()});
+            statsTableModel.addRow(new Object[]{"  Max", stats.getMax()});
+            statsTableModel.addRow(new Object[]{"  Count", stats.getCount()});
+
+            // Add separator row
+            if (columnStats.size() > 1) {
+                statsTableModel.addRow(new Object[]{"", ""});
+            }
+        }
+    }
+
+
     
     private void updateSubsetSpec(List<String> columnNames) {
         if (columnNames.isEmpty()) {
@@ -1166,6 +1347,27 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 }
             }
             // <<< visualization
+
+            else if (newValue instanceof SummaryStatisticsState) {
+                final SummaryStatisticsState state = (SummaryStatisticsState) newValue;
+
+                if (state.getErrorMessage() != null) {
+                    JOptionPane.showMessageDialog(this,
+                            state.getErrorMessage(),
+                            "Statistics Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    // Show error in table
+                    statsTableModel.setRowCount(0);
+                    statsTableModel.addRow(new Object[]{"Error", state.getErrorMessage()});
+                } else if (state.isCalculating()) {
+                    // Show loading state
+                    statsTableModel.setRowCount(0);
+                    statsTableModel.addRow(new Object[]{"Calculating...", ""});
+                } else if (state.getColumnStats() != null) {
+                    displayStatisticsTable(state.getColumnStats());
+                }
+            }
+            //end
         }
     }
     
@@ -1212,6 +1414,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     }
     // <<< visualization
 
+    public void setStatisticsController(SummaryStatisticsController statisticsController) {
+        this.statisticsController = statisticsController;
+    }
 
     public void updateSummaryStats(String stats) {
         statsTextArea.setText(stats);

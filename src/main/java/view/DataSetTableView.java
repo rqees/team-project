@@ -9,6 +9,7 @@ import interface_adapter.table.TableController;
 import interface_adapter.table.TableState;
 import interface_adapter.table.TableViewModel;
 import interface_adapter.save_dataset.SaveDataSetController;
+import interface_adapter.save_dataset.SaveDataSetViewModel;
 
 // >>> visualization
 import interface_adapter.visualization.PlotKindView;
@@ -100,6 +101,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private LoadController loadController;
     private final LoadViewModel loadViewModel;
+    private final SaveDataSetViewModel saveViewModel;
     private SaveDataSetController saveController;
 
         // >>> visualization
@@ -131,8 +133,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private JButton visualizeButton;
         private JLabel selectedColumnsLabel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel,
-                            VisualizationViewModel visualizationViewModel, SummaryStatisticsViewModel statisticsViewModel) {
+    public DataSetTableView(SearchViewModel searchViewModel,
+                            TableViewModel tableViewModel,
+                            LoadViewModel loadViewModel,
+                            SaveDataSetViewModel saveViewModel,
+                            VisualizationViewModel visualizationViewModel,
+                            SummaryStatisticsViewModel statisticsViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -140,6 +146,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.tableViewModel.addPropertyChangeListener(this);
 
         this.loadViewModel = loadViewModel;
+        this.saveViewModel = saveViewModel;
         
         this.visualizationViewModel = visualizationViewModel;
         this.visualizationViewModel.addPropertyChangeListener(this);
@@ -605,6 +612,25 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     break;
             }
         });
+
+        saveViewModel.addPropertyChangeListener(evt -> {
+            if (!"success".equals(evt.getPropertyName())) {
+                return;
+            }
+            int messageType;
+            if (saveViewModel.isSuccess()) {
+                messageType = JOptionPane.INFORMATION_MESSAGE;
+            } else {
+                messageType = JOptionPane.ERROR_MESSAGE;
+            }
+            JOptionPane.showMessageDialog(
+                    this,
+                    saveViewModel.getMessage(),
+                    "Save Dataset",
+                    messageType
+            );
+        });
+
         // Statistics calculate button handler
         calculateStatsButton.addActionListener(e -> performCalculateStatistics());
     }
@@ -1281,6 +1307,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     public void setSaveController(SaveDataSetController controller) {
         this.saveController = controller;
+    }
+
+    public void setSaveViewModel(SaveDataSetViewModel viewModel) {
+        // no-op; view model now supplied in constructor
     }
 
       // >>> visualization

@@ -548,23 +548,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
 
         File selectedFile = fileChooser.getSelectedFile();
-        String rawName = "";
-        if (selectedFile != null) {
-            rawName = selectedFile.getName().trim();
-        }
-
-        if (selectedFile == null || rawName.isEmpty() || selectedFile.isDirectory()) {
-            // Trigger existing validation path so the presenter shows the "empty ID" message.
-            try {
-                saveController.execute("");
-            } catch (java.io.IOException e) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Failed to save dataset: " + e.getMessage(),
-                        "Save Dataset",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+        if (selectedFile == null || selectedFile.isDirectory()) {
             return;
         }
 

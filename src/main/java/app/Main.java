@@ -21,6 +21,7 @@ public class Main {
                     .addLoadUseCase()
                     .addStatisticsUseCase()
                     .addSaveUseCase()
+                    .addDataCleaningUseCase()
                     .loadSampleData()  // Load sample data through builder
                     .addVisualizationUseCase()
                     .build();

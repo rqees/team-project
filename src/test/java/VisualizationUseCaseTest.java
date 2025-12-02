@@ -54,7 +54,7 @@ public class VisualizationUseCaseTest {
                 plotKindModelFactory
         );
         VisualizationController controller = new VisualizationController(interactor, tableGateway, presenter);
-
+ 
         // Create visualization input data
         // Using numeric columns from sample data: Age and Net Worth
         List<String> columnNames = Arrays.asList("Age", "Net Worth");

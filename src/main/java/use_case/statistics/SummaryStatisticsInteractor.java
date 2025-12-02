@@ -1,25 +1,31 @@
 package use_case.statistics;
 
 import entity.*;
+import use_case.visualization.gateway.DataSubsetGateway;
+import use_case.visualization.gateway.SummaryReportGateway;
+import use_case.visualization.data.DataSubsetData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * The Summary Statistics Interactor - REFACTORED VERSION
- *
+ * The Summary Statistics Interactor
  * RESPONSIBILITY: Orchestrate the use case flow only.
  * All calculations are delegated to StatisticsCalculator.
  */
 public class SummaryStatisticsInteractor implements SummaryStatisticsInputBoundary {
 
-    private final SummaryStatisticsDataAccessInterface summaryStatisticsDataAccessObject;
+    private final DataSubsetGateway dataSubsetGateway;
+    private final SummaryReportGateway summaryReportGateway;
     private final SummaryStatisticsOutputBoundary summaryStatisticsPresenter;
     private static final double OUTLIER_Z_SCORE_THRESHOLD = 3.0;
 
-    public SummaryStatisticsInteractor(SummaryStatisticsDataAccessInterface dataAccess,
+    public SummaryStatisticsInteractor(DataSubsetGateway dataSubsetGateway,
+                                       SummaryReportGateway summaryReportGateway,
                                        SummaryStatisticsOutputBoundary presenter) {
-        this.summaryStatisticsDataAccessObject = dataAccess;
+        this.dataSubsetGateway = dataSubsetGateway;
+        this.summaryReportGateway = summaryReportGateway;
         this.summaryStatisticsPresenter = presenter;
     }
 
@@ -31,21 +37,26 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
 
             final DataSubsetSpec subset = input.getDataSubsetSpec();
 
-            // Step 2: Validate subset exists and is accessible
-            if (!summaryStatisticsDataAccessObject.validateDataSubset(subset)) {
-                summaryStatisticsPresenter.prepareFailView("Invalid or inaccessible data subset");
+            // Step 2: Load the data subset
+            DataSubsetData subsetData;
+            try {
+                subsetData = dataSubsetGateway.loadSubset(subset);
+            } catch (IllegalStateException e) {
+                summaryStatisticsPresenter.prepareFailView("Dataset not loaded: " + e.getMessage());
+                return;
+            } catch (Exception e) {
+                summaryStatisticsPresenter.prepareFailView("Error loading data subset: " + e.getMessage());
                 return;
             }
 
-            // Step 3: Verify dataset exists
-            final DataSubsetSpec validatedSubset = summaryStatisticsDataAccessObject.getDataSubsetById(subset.getDatasetId());
-            if (validatedSubset == null) {
-                summaryStatisticsPresenter.prepareFailView("Dataset not found: " + subset.getDatasetId());
+            // Step 3: Verify we have numeric data
+            if (subsetData.getNumericColumns().isEmpty()) {
+                summaryStatisticsPresenter.prepareFailView("No numeric columns found for statistical analysis");
                 return;
             }
 
             // Step 4: Calculate all summary metrics
-            List<SummaryMetric> metrics = calculateAllMetrics(subset);
+            List<SummaryMetric> metrics = calculateAllMetrics(subset, subsetData);
 
             // Step 5: Create SummaryReport entity
             SummaryReport report = new SummaryReport(
@@ -55,7 +66,10 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
                     metrics
             );
 
-            // Step 6: Create and send output data
+            // Step 6: Save the report
+            summaryReportGateway.save(report);
+
+            // Step 7: Create and send output data
             SummaryStatisticsOutputData outputData = new SummaryStatisticsOutputData(report);
             summaryStatisticsPresenter.prepareSuccessView(outputData);
 
@@ -93,24 +107,15 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
     // ORCHESTRATION (Application Logic)
     // ========================================
 
-    private List<SummaryMetric> calculateAllMetrics(DataSubsetSpec subset) {
+    private List<SummaryMetric> calculateAllMetrics(DataSubsetSpec subset, DataSubsetData subsetData) {
         List<SummaryMetric> metrics = new ArrayList<>();
 
-        // Identify numeric columns
-        List<String> numericColumns = new ArrayList<>();
-        for (String columnName : subset.getColumnNames()) {
-            if (summaryStatisticsDataAccessObject.isNumericColumn(subset.getDatasetId(), columnName)) {
-                numericColumns.add(columnName);
-            }
-        }
-
-        if (numericColumns.isEmpty()) {
-            throw new IllegalArgumentException("No numeric columns found for statistical analysis");
-        }
+        Map<String, List<Double>> numericColumns = subsetData.getNumericColumns();
+        List<String> columnNames = new ArrayList<>(numericColumns.keySet());
 
         // Calculate metrics for each numeric column
-        for (String columnName : numericColumns) {
-            metrics.addAll(calculateColumnMetrics(subset, columnName));
+        for (String columnName : columnNames) {
+            metrics.addAll(calculateColumnMetrics(subset, columnName, numericColumns.get(columnName)));
         }
 
         // Calculate outliers across all numeric columns
@@ -125,27 +130,33 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         }
 
         // Calculate correlation matrix if multiple numeric columns exist
-        if (numericColumns.size() > 1) {
-            double[][] correlationMatrix = calculateCorrelationMatrix(subset, numericColumns);
+        if (columnNames.size() > 1) {
+            double[][] correlationMatrix = calculateCorrelationMatrix(numericColumns, columnNames);
             metrics.add(new CorrelationMatrixMetric(
                     MetricType.CORRELATION_MATRIX,
                     subset,
                     correlationMatrix,
-                    numericColumns
+                    columnNames
             ));
         }
 
         return metrics;
     }
 
-    private List<SummaryMetric> calculateColumnMetrics(DataSubsetSpec subset, String columnName) {
+    private List<SummaryMetric> calculateColumnMetrics(DataSubsetSpec subset, String columnName, List<Double> values) {
         List<SummaryMetric> metrics = new ArrayList<>();
         DataSubsetSpec columnSubset = createColumnSubset(subset, columnName);
 
         try {
-            List<Double> values = summaryStatisticsDataAccessObject.getNumericColumnValues(subset, columnName);
+            if (values == null || values.isEmpty()) {
+                return metrics;
+            }
 
-            if (values.isEmpty()) {
+            // Check if there are any non-null values
+            long nonNullCount = StatisticsCalculator.countNonNull(values);
+            if (nonNullCount == 0) {
+                // All values are null - skip this column or report as no data
+                System.err.println("Warning: Column '" + columnName + "' has no valid numeric values");
                 return metrics;
             }
 
@@ -155,7 +166,6 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
             double stdDev = StatisticsCalculator.calculateStandardDeviation(values, mean);
             double min = StatisticsCalculator.calculateMin(values);
             double max = StatisticsCalculator.calculateMax(values);
-            int count = values.size();
 
             // Create metric entities (interactor's job)
             metrics.add(new ScalarSummaryMetrics(MetricType.MEAN, columnSubset, mean));
@@ -163,7 +173,7 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
             metrics.add(new ScalarSummaryMetrics(MetricType.STANDARD_DEVIATION, columnSubset, stdDev));
             metrics.add(new ScalarSummaryMetrics(MetricType.MIN, columnSubset, min));
             metrics.add(new ScalarSummaryMetrics(MetricType.MAX, columnSubset, max));
-            metrics.add(new ScalarSummaryMetrics(MetricType.COUNT, columnSubset, count));
+            metrics.add(new ScalarSummaryMetrics(MetricType.COUNT, columnSubset, nonNullCount));
 
         } catch (Exception e) {
             System.err.println("Error calculating metrics for column " + columnName + ": " + e.getMessage());
@@ -174,26 +184,26 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
 
     private DataSubsetSpec createColumnSubset(DataSubsetSpec originalSubset, String columnName) {
         return new DataSubsetSpec(
-                originalSubset.getDatasetId(),
+                originalSubset.getSubsetId(),
                 List.of(columnName),
                 originalSubset.getRowIndices()
         );
     }
 
-    // ========================================
-    // OUTLIER DETECTION (Orchestration + Delegation)
-    // ========================================
+    // =================
+    // OUTLIER DETECTION
+    // =================
 
-    private List<OutlierPoint> detectOutliers(DataSubsetSpec subset, List<String> numericColumns) {
+    private List<OutlierPoint> detectOutliers(DataSubsetSpec subset, Map<String, List<Double>> numericColumns) {
         List<OutlierPoint> outliers = new ArrayList<>();
+        List<String> columnNames = new ArrayList<>(numericColumns.keySet());
 
-        for (int colIdx = 0; colIdx < numericColumns.size(); colIdx++) {
-            String columnName = numericColumns.get(colIdx);
+        for (int colIdx = 0; colIdx < columnNames.size(); colIdx++) {
+            String columnName = columnNames.get(colIdx);
+            List<Double> values = numericColumns.get(columnName);
 
             try {
-                List<Double> values = summaryStatisticsDataAccessObject.getNumericColumnValues(subset, columnName);
-
-                if (values.isEmpty()) {
+                if (values == null || values.isEmpty()) {
                     continue;
                 }
 
@@ -219,23 +229,13 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
         return outliers;
     }
 
-    // ========================================
-    // CORRELATION MATRIX (Orchestration + Delegation)
-    // ========================================
+    // ==================
+    // CORRELATION MATRIX
+    // ==================
 
-    private double[][] calculateCorrelationMatrix(DataSubsetSpec subset, List<String> numericColumns) {
-        int n = numericColumns.size();
+    private double[][] calculateCorrelationMatrix(Map<String, List<Double>> numericColumns, List<String> columnNames) {
+        int n = columnNames.size();
         double[][] matrix = new double[n][n];
-
-        // Retrieve data for all columns
-        List<List<Double>> allColumnValues = new ArrayList<>();
-        for (String columnName : numericColumns) {
-            try {
-                allColumnValues.add(summaryStatisticsDataAccessObject.getNumericColumnValues(subset, columnName));
-            } catch (Exception e) {
-                allColumnValues.add(new ArrayList<>());
-            }
-        }
 
         // Calculate correlation for each pair
         for (int i = 0; i < n; i++) {
@@ -244,10 +244,10 @@ public class SummaryStatisticsInteractor implements SummaryStatisticsInputBounda
                     matrix[i][j] = 1.0;
                 } else if (i < j) {
                     // DELEGATE calculation to StatisticsCalculator
-                    double correlation = StatisticsCalculator.calculatePearsonCorrelation(
-                            allColumnValues.get(i),
-                            allColumnValues.get(j)
-                    );
+                    List<Double> valuesI = numericColumns.get(columnNames.get(i));
+                    List<Double> valuesJ = numericColumns.get(columnNames.get(j));
+
+                    double correlation = StatisticsCalculator.calculatePearsonCorrelation(valuesI, valuesJ);
                     matrix[i][j] = correlation;
                     matrix[j][i] = correlation; // Mirror to lower triangle
                 }

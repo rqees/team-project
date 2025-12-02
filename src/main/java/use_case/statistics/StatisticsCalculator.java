@@ -6,13 +6,9 @@ import java.util.stream.Collectors;
 
 /**
  * Helper class containing pure statistical calculation methods.
- *
- * This class lives at the USE CASE layer (same level as the interactor).
- * It has no dependencies on entities, data access, or presenters.
- *
+
  * RESPONSIBILITY: Perform mathematical calculations only.
- * - Follows SRP: Single responsibility is statistical computation
- * - Allows interactor to focus on orchestration/flow
+ * - Allows interactor to focus on orchestration
  * - Makes calculations reusable across multiple use cases
  * - Easy to test in isolation
  */

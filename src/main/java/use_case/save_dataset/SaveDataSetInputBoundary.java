@@ -9,5 +9,5 @@ public interface SaveDataSetInputBoundary {
      *
      * @param inputData input model containing the dataset identifier
      */
-    void execute(SaveDataSetInputData inputData);
+    void execute(SaveDataSetInputData inputData) throws java.io.IOException;
 }

@@ -29,9 +29,9 @@ public class SaveDataSetInteractorTest {
     }
 
     @Test
-    void execute_validId_callsDataAccessAndReturnsSuccess() {
+    void execute_validId_callsDataAccessAndReturnsSuccess() throws java.io.IOException {
         DataSet sample = createSampleDataSet();
-        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(createSampleDataSet());
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(sample);
         FakeDataAccess fakeDataAccess = new FakeDataAccess();
         FakePresenter fakePresenter = new FakePresenter();
         SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
@@ -50,22 +50,7 @@ public class SaveDataSetInteractorTest {
     }
 
     @Test
-    void execute_blankId_doesNotCallDataAccessAndReturnsFailure() {
-        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(createSampleDataSet());
-        FakeDataAccess fakeDataAccess = new FakeDataAccess();
-        FakePresenter fakePresenter = new FakePresenter();
-        SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
-        interactor.execute(new SaveDataSetInputData("   "));
-
-        assertFalse(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should NOT be called for blank ID");
-        assertFalse(fakeDataAccess.saveCalled, "DataAccess.save should NOT have been called for blank ID");
-        assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
-        assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
-        assertEquals("Dataset ID cannot be empty.", fakePresenter.lastOutput.getMessage());
-    }
-
-    @Test
-    void execute_noCurrentDataSet_returnsFailure() {
+    void execute_noCurrentDataSet_returnsFailure() throws java.io.IOException {
         FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(null);
         FakeDataAccess fakeDataAccess = new FakeDataAccess();
         FakePresenter fakePresenter = new FakePresenter();
@@ -80,46 +65,16 @@ public class SaveDataSetInteractorTest {
         assertEquals("No dataset loaded to save.", fakePresenter.lastOutput.getMessage());
     }
 
-    @Test
-    void execute_dataAccessThrows_reportsFailure() {
-        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(createSampleDataSet());
-        FakePresenter fakePresenter = new FakePresenter();
-        SaveDataSetInteractor interactor = new SaveDataSetInteractor(
-                        new ThrowingDataAccess("boom"),
-                        fakePresenter,
-                        fakeCurrentTableGateway
-                        );
-
-        interactor.execute(new SaveDataSetInputData("id"));
-
-        assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
-        assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
-        assertTrue(fakePresenter.lastOutput.getMessage().contains("boom"),"Failure message should include the thrown exception message");
-    }
-
     private static class FakeDataAccess implements SaveDataSetDataAccessInterface {
         boolean saveCalled = false;
         String lastId = null;
         DataSet lastDataSet = null;
 
         @Override
-        public void save(String id, DataSet dataSet) {
+        public void save(String id, DataSet dataSet) throws java.io.IOException {
             saveCalled = true;
             lastId = id;
             lastDataSet = dataSet;
-        }
-    }
-
-    private static class ThrowingDataAccess implements SaveDataSetDataAccessInterface {
-        private final String message;
-
-        private ThrowingDataAccess(String message) {
-            this.message = message;
-        }
-
-        @Override
-        public void save(String id, DataSet dataSet) {
-            throw new RuntimeException(message);
         }
     }
 

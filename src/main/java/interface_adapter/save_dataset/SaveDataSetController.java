@@ -24,7 +24,7 @@ public class SaveDataSetController {
      *
      * @param datasetId name of the saved dataset or path chosen by the user.
      */
-    public void execute(String datasetId) {
+    public void execute(String datasetId) throws java.io.IOException {
         SaveDataSetInputData inputData = new SaveDataSetInputData(datasetId);
         interactor.execute(inputData);
     }

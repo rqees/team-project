@@ -1,13 +1,17 @@
 package interface_adapter.statistics;
 
-import entity.DataSubsetSpec;
 import use_case.statistics.SummaryStatisticsInputBoundary;
 import use_case.statistics.SummaryStatisticsInputData;
 
 import java.util.List;
 
 /**
- * Controller for Summary Statistics
+ * Controller for Summary Statistics (Clean Architecture compliant).
+ *
+ * Clean Architecture Compliance:
+ * - NO entity imports (Interface Adapter must not depend on entities)
+ * - Only depends on Use Case layer (inward dependency)
+ * - Passes primitives to InputData, which creates entities internally
  */
 public class SummaryStatisticsController {
 
@@ -19,6 +23,9 @@ public class SummaryStatisticsController {
 
     /**
      * Executes the summary statistics use case.
+     *
+     * Accepts primitive types from the UI and passes to InputData.
+     * InputData will create entities internally (Clean Architecture compliant).
      *
      * @param dataSubsetId unique identifier for this analysis
      * @param reportName name for the generated report
@@ -34,18 +41,14 @@ public class SummaryStatisticsController {
             List<Integer> rowIndices) {
 
         try {
-            // Create the data subset
-            DataSubsetSpec subsetSpec = new DataSubsetSpec(
-                    datasetId,
-                    columnNames,
-                    rowIndices
-            );
-
-            // Create the input data for the use case
+            // Create input data with primitives
+            // InputData creates entities internally - Controller never touches entities
             SummaryStatisticsInputData inputData = new SummaryStatisticsInputData(
                     dataSubsetId,
                     reportName,
-                    subsetSpec
+                    datasetId,      // Primitive
+                    columnNames,    // Primitive
+                    rowIndices      // Primitive
             );
 
             // Execute the use case
@@ -59,6 +62,8 @@ public class SummaryStatisticsController {
 
     /**
      * Executes the summary statistics use case with all rows.
+     *
+     * Convenience method when analyzing all rows in the dataset.
      *
      * @param dataSubsetId unique identifier for this analysis
      * @param reportName name for the generated report

@@ -13,6 +13,7 @@ import interface_adapter.search.SearchPresenter;
 import interface_adapter.search.SearchViewModel;
 import interface_adapter.save_dataset.SaveDataSetController;
 import interface_adapter.save_dataset.SaveDataSetPresenter;
+import interface_adapter.save_dataset.SaveDataSetViewModel;
 import interface_adapter.table.TableController;
 import interface_adapter.table.TablePresenter;
 import interface_adapter.table.TableViewModel;
@@ -39,6 +40,7 @@ import javax.swing.*;
 import java.awt.*;
 
 import interface_adapter.visualization.VisualizationController;
+import interface_adapter.visualization.VisualizationMetadataUpdater;
 import interface_adapter.visualization.VisualizationPresenter;
 import interface_adapter.visualization.VisualizationViewModel;
 
@@ -67,6 +69,7 @@ public class DataAnalysisAppBuilder {
     private TableViewModel tableViewModel;
     private LoadViewModel loadViewModel;
     private LoadAPIViewModel loadAPIViewModel;
+    private SaveDataSetViewModel saveDataSetViewModel;
 
     private VisualizationViewModel visualizationViewModel;
 
@@ -92,10 +95,18 @@ public class DataAnalysisAppBuilder {
         tableViewModel = new TableViewModel();
         loadViewModel = new LoadViewModel();
         loadAPIViewModel = new LoadAPIViewModel();
+        saveDataSetViewModel = new SaveDataSetViewModel();
         visualizationViewModel = new VisualizationViewModel();
         statisticsViewModel = new SummaryStatisticsViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel,
-                loadViewModel, loadAPIViewModel, visualizationViewModel, statisticsViewModel);
+        dataSetTableView = new DataSetTableView(
+                searchViewModel,
+                tableViewModel,
+                loadViewModel,
+                loadAPIViewModel,
+                saveDataSetViewModel,
+                visualizationViewModel,
+                statisticsViewModel
+        );
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }
@@ -133,7 +144,7 @@ public class DataAnalysisAppBuilder {
     }
 
     public DataAnalysisAppBuilder addSaveUseCase() {
-        final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(dataSetTableView);
+        final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(saveDataSetViewModel);
         final SaveDataSetDataAccessInterface saveDataAccess = new FileSaveDataSetDataAccessObject("saved_datasets");
         final SaveDataSetInputBoundary saveInteractor = new SaveDataSetInteractor(saveDataAccess, saveOutputBoundary, tableGateway);
         final SaveDataSetController saveController = new SaveDataSetController(saveInteractor);
@@ -168,10 +179,17 @@ public class DataAnalysisAppBuilder {
                     );
 
             VisualizationController controller =
-                    new VisualizationController(interactor);
+                    new VisualizationController(interactor, tableGateway, presenter);
 
             dataSetTableView.setVisualizationController(controller);
-            dataSetTableView.setTableGateway(tableGateway);
+            
+            // Set up automatic metadata updates when table data changes
+            VisualizationMetadataUpdater metadataUpdater = new VisualizationMetadataUpdater(
+                    (VisualizationPresenter) presenter,
+                    tableGateway
+            );
+            metadataUpdater.register(tableViewModel);
+            
             return this;
         }
 

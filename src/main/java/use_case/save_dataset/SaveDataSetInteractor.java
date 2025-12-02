@@ -36,9 +36,9 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
     public void execute(SaveDataSetInputData inputData) throws java.io.IOException {
         String id = inputData.getDatasetId();
 
-        if (id == null || id.isBlank()) {
+        if (id == null) {
             outputBoundary.present(new SaveDataSetOutputData(
-                    id, false, "Dataset ID cannot be empty."
+                    id, false, "Dataset ID is required."
             ));
             return;
         }

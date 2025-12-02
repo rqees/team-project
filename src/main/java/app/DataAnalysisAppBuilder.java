@@ -93,10 +93,9 @@ public class DataAnalysisAppBuilder {
         loadViewModel = new LoadViewModel();
         loadAPIViewModel = new LoadAPIViewModel();
         visualizationViewModel = new VisualizationViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel, loadAPIViewModel, visualizationViewModel);
         statisticsViewModel = new SummaryStatisticsViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel,
-                loadViewModel, visualizationViewModel, statisticsViewModel);
+        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel,
+                loadAPIViewModel, visualizationViewModel, statisticsViewModel);
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }

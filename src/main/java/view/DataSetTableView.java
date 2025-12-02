@@ -145,9 +145,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private JButton visualizeButton;
         private JLabel selectedColumnsLabel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel, LoadAPIViewModel loadAPIViewModel, VisualizationViewModel visualizationViewModel) {
     public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel,
-                            VisualizationViewModel visualizationViewModel, SummaryStatisticsViewModel statisticsViewModel) {
+                            LoadAPIViewModel loadAPIViewModel, VisualizationViewModel visualizationViewModel, SummaryStatisticsViewModel statisticsViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 

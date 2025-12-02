@@ -3,9 +3,9 @@ package entity;
 import  java.util.List;
 
 public class HeatmapSummaryMetric implements SummaryMetric {
-    private final MetricType metric_type;
-    private final DataSubsetSpec selected_subset;
-    private final double[][] heatmap_values;
+    private final MetricType metricType;
+    private final DataSubsetSpec selectedSubset;
+    private final double[][] heatmapValues;
     private final List<String> rowLabels;
     private final List<String> colLabels;
 
@@ -14,25 +14,25 @@ public class HeatmapSummaryMetric implements SummaryMetric {
                                 double[][] heatmap_values,
                                 List<String> rowLabels,
                                 List<String> colLabels) {
-        this.metric_type = metric_type;
-        this.selected_subset = selected_subset;
-        this.heatmap_values = heatmap_values;
+        this.metricType = metric_type;
+        this.selectedSubset = selected_subset;
+        this.heatmapValues = heatmap_values;
         this.rowLabels = List.copyOf(rowLabels);
         this.colLabels = List.copyOf(colLabels);
     }
 
     @Override
     public MetricType getMetricType() {
-        return metric_type;
+        return metricType;
     }
 
     @Override
-    public DataSubsetSpec getSelected_subset() {
-        return selected_subset;
+    public DataSubsetSpec getSelectedSubset() {
+        return selectedSubset;
     }
 
-    public double[][] getHeatmap_values() {
-        return heatmap_values;
+    public double[][] getHeatmapValues() {
+        return heatmapValues;
     }
 
     public List<String> getRowLabels() {

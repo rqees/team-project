@@ -5,7 +5,7 @@ import java.util.List;
 public class OutlierSummaryMetric implements SummaryMetric {
     private final MetricType metric_type;
     private final DataSubsetSpec selected_subset;
-    private final double metric_value;  // e.g. std dev or threshold, or just a scalar summary
+    private final double outlier_z_score_threshold;  // e.g. std dev or threshold, or just a scalar summary
     private final List<OutlierPoint> outlier_points;
 
     public OutlierSummaryMetric(MetricType metric_type,
@@ -14,7 +14,7 @@ public class OutlierSummaryMetric implements SummaryMetric {
                                 List<OutlierPoint> outlier_points) {
         this.metric_type = metric_type;
         this.selected_subset = selected_subset;
-        this.metric_value = metric_value;
+        this.outlier_z_score_threshold = metric_value;
         this.outlier_points = List.copyOf(outlier_points);
     }
 
@@ -24,12 +24,12 @@ public class OutlierSummaryMetric implements SummaryMetric {
     }
 
     @Override
-    public DataSubsetSpec getSelected_subset() {
+    public DataSubsetSpec getSelectedSubset() {
         return selected_subset;
     }
 
-    public double getMetric_value() {
-        return metric_value;
+    public double getOutlier_z_score_threshold() {
+        return outlier_z_score_threshold;
     }
 
     public List<OutlierPoint> getOutlier_points() {

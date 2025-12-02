@@ -8,11 +8,11 @@ public class SummaryReport {
     private final DataSubsetSpec selectedSubset;
     private final List<SummaryMetric> summaryMetrics;
 
-    public SummaryReport(int summaryId, String reportName, DataSubsetSpec selectedSubset, List<SummaryMetric> summaryMetrics) {
-        this.summaryId = summaryId;
-        this.reportName = reportName;
-        this.selectedSubset = selectedSubset;
-        this.summaryMetrics = summaryMetrics;
+    public SummaryReport(int summary_id, String report_name, DataSubsetSpec selected_subset,  List<SummaryMetric> summary_metrics) {
+        this.summaryId = summary_id;
+        this.reportName = report_name;
+        this.selectedSubset = selected_subset;
+        this.summaryMetrics = summary_metrics;
     }
 
     public int getSummaryId() {

@@ -3,18 +3,18 @@ package entity;
 import java.util.List;
 
 public class DataSubsetSpec {
-    private final String datasetId;
+    private final String subsetId;
     private final List<String> columnNames;
     private final List<Integer> rowIndices;
 
-    public DataSubsetSpec(String datasetId, List<String> columnNames, List<Integer> rowIndices) {
-        this.datasetId = datasetId;
+    public DataSubsetSpec(String subsetId, List<String> columnNames, List<Integer> rowIndices) {
+        this.subsetId = subsetId;
         this.columnNames = columnNames;
         this.rowIndices = rowIndices;
     }
 
-    public String getDatasetId() {
-        return datasetId;
+    public String getSubsetId() {
+        return subsetId;
     }
 
     public List<String> getColumnNames() {

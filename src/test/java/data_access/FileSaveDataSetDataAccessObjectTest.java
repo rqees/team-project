@@ -44,13 +44,11 @@ class FileSaveDataSetDataAccessObjectTest {
         dao.save(datasetId, dataSet);
 
         Path expectedFile = rootDir.resolve(datasetId + ".csv");
-        assertTrue(Files.exists(expectedFile),
-                "Expected CSV file " + expectedFile + " to exist after save()");
+        assertTrue(Files.exists(expectedFile), "Expected CSV file " + expectedFile + " to exist after save()");
     }
 
     @Test
     void save_writesCorrectHeaderAndRows() throws IOException {
-        // Arrange
         DataSet dataSet = createSampleDataSet();
         Path rootDir = tempDir.resolve("datasets");
         FileSaveDataSetDataAccessObject dao = new FileSaveDataSetDataAccessObject(rootDir.toString());
@@ -79,5 +77,17 @@ class FileSaveDataSetDataAccessObjectTest {
         assertTrue(Files.exists(absoluteFile), "CSV should be written to the absolute path when provided");
         List<String> lines = Files.readAllLines(absoluteFile);
         assertEquals("Name,Age", lines.get(0));
+    }
+
+    @Test
+    void save_doesNotAppendCsvExtensionTwice() throws IOException {
+        DataSet dataSet = createSampleDataSet();
+        Path rootDir = tempDir.resolve("datasets");
+        FileSaveDataSetDataAccessObject dao = new FileSaveDataSetDataAccessObject(rootDir.toString());
+
+        dao.save("already.csv", dataSet);
+
+        Path expectedFile = rootDir.resolve("already.csv");
+        assertTrue(Files.exists(expectedFile), "File should retain single .csv extension");
     }
 }

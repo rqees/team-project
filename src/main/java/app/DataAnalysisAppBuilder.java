@@ -87,10 +87,8 @@ public class DataAnalysisAppBuilder {
 
     public DataAnalysisAppBuilder addSaveUseCase() {
         final SaveDataSetOutputBoundary saveOutputBoundary = new SaveDataSetPresenter(dataSetTableView);
-        final SaveDataSetDataAccessInterface saveDataAccess =
-                new FileSaveDataSetDataAccessObject("saved_datasets");
-        final SaveDataSetInputBoundary saveInteractor =
-                new SaveDataSetInteractor(saveDataAccess, saveOutputBoundary, tableGateway);
+        final SaveDataSetDataAccessInterface saveDataAccess = new FileSaveDataSetDataAccessObject("saved_datasets");
+        final SaveDataSetInputBoundary saveInteractor = new SaveDataSetInteractor(saveDataAccess, saveOutputBoundary, tableGateway);
         final SaveDataSetController saveController = new SaveDataSetController(saveInteractor);
 
         dataSetTableView.setSaveController(saveController);

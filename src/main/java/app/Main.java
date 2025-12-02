@@ -20,6 +20,7 @@ public class Main {
                     .addTableDisplayUseCase()
                     .addLoadUseCase()
                     .addSaveUseCase()
+                    .addDataCleaningUseCase()
                     .loadSampleData()  // Load sample data through builder
                     .addVisualizationUseCase()
                     .build();

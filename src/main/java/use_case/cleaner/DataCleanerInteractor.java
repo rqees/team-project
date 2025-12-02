@@ -5,6 +5,8 @@ import entity.DataRow;
 import entity.Column;
 import entity.DataType;
 
+import use_case.dataset.CurrentTableGateway;
+
 import use_case.cleaner.validators.BooleanValidator;
 import use_case.cleaner.validators.CategoricalValidator;
 import use_case.cleaner.validators.DataTypeValidator;
@@ -25,17 +27,93 @@ import java.util.Map;
  * - Treat missing or corrupted values as {@code null}.
  * - Provide a log of all cells that were changed to {@code null}.
  */
-public class DataCleaner {
-    private final DataSet dataSet;
+public class DataCleanerInteractor implements DataCleaningInputBoundary{
+
+    private final CurrentTableGateway tableGateway;
+    private final DataCleaningOutputBoundary presenter;
+
     private final Set<String> uniqueHeaders = new HashSet<>();
     private final Map<DataType, DataTypeValidator> validators =
             new EnumMap<>(DataType.class);
 
-    public DataCleaner(DataSet dataSet) {
-        this.dataSet = dataSet;
-        checkUniqueHeaders();
+    public DataCleanerInteractor(CurrentTableGateway tableGateway, DataCleaningOutputBoundary presenter) {
+        this.tableGateway = tableGateway;
+        this.presenter = presenter;
         initializeValidators();
     }
+
+    // helper to always get the current DataSet
+    private DataSet requireCurrentDataSet() {
+        DataSet dataSet = tableGateway.load();
+        if (dataSet == null) {
+            throw new IllegalStateException("No current dataset is loaded.");
+        }
+        return dataSet;
+    }
+
+    // Input boundary methods---------------
+    @Override
+    public void cleanEditedCell(DataCleaningInputData.EditedCellInputData inputData) {
+        DataSet dataSet = requireCurrentDataSet();
+
+        int rowIndex = inputData.getRowIndex();
+        int colIndex = inputData.getColIndex();
+        String rawValue = inputData.getRawValue();
+
+        // 1. clean the value using existing logic
+        String cleanedValue = cleanValueForColumn(dataSet, colIndex, rawValue);
+
+        // 2. update the entity (DataSet)
+        dataSet.setCell(cleanedValue, rowIndex, colIndex);
+        tableGateway.save(dataSet);
+
+        // 3. build output data and send to presenter
+        DataCleaningOutputData.EditedCellOutputData outputData =
+                new DataCleaningOutputData.EditedCellOutputData(
+                        rowIndex, colIndex, cleanedValue
+                );
+
+        presenter.presentEditedCell(outputData);
+    }
+
+    @Override
+    public void editHeader(DataCleaningInputData.HeaderEditInputData inputData) {
+        DataSet dataSet = requireCurrentDataSet();
+
+        int colIndex = inputData.getColIndex();
+        String newHeader = inputData.getNewHeader();
+
+        try {
+            // use helper that contains header logic
+            editHeaderInternal(dataSet, newHeader, colIndex);
+            tableGateway.save(dataSet);
+
+            DataCleaningOutputData.HeaderEditOutputData outputData =
+                    new DataCleaningOutputData.HeaderEditOutputData(colIndex, newHeader);
+
+            presenter.presentHeaderEdit(outputData);
+        } catch (IllegalArgumentException e) {
+            // report by output boundary
+            presenter.presentHeaderEditFailure(e.getMessage());
+        }
+    }
+
+    @Override
+    public void cleanEntireDataSet() {
+        DataSet dataSet = requireCurrentDataSet();
+
+        // use old cleanDataSet logic
+        List<MissingCell> changedToNull = cleanDataSetInternal(dataSet);
+        tableGateway.save(dataSet);
+
+        DataCleaningOutputData.CleanEntireDataSetOutputData outputData =
+                new DataCleaningOutputData.CleanEntireDataSetOutputData(changedToNull);
+
+        // send to presenter
+        presenter.presentEntireDataSetCleaned(outputData);
+    }
+
+
 
     // initialize validators to validate the data
     private void initializeValidators() {
@@ -51,7 +129,7 @@ public class DataCleaner {
      *
      * @return list of locations that were cleared using header
      */
-    public List<MissingCell> cleanDataSet() {
+    private List<MissingCell> cleanDataSetInternal(DataSet dataSet) {
         List<MissingCell> changedToNull = new ArrayList<>();
 
         List<DataRow> rows = dataSet.getRows();
@@ -64,7 +142,7 @@ public class DataCleaner {
             for (int colIndex = 0; colIndex < cells.size(); colIndex++) {
                 String originalValue = cells.get(colIndex);
 
-                String cleanValue = cleanValueForColumn(colIndex, originalValue);
+                String cleanValue = cleanValueForColumn(dataSet, colIndex, originalValue);
 
                 dataSet.setCell(cleanValue, rowIndex, colIndex);
 
@@ -86,7 +164,8 @@ public class DataCleaner {
     // Edit a column header
     // check if new header is null or duplicate
     // if true, throw exception
-    public void editHeader(String newHeader, int colIndex){
+    private void editHeaderInternal(DataSet dataSet, String newHeader, int colIndex){
+        rebuildUniqueHeaders(dataSet);
 
         // check if null
         if (isMissing(newHeader)) {
@@ -108,40 +187,32 @@ public class DataCleaner {
         }
 
         // update uniqueHeader
-
         uniqueHeaders.remove(cleanOld);
         uniqueHeaders.add(cleanNewHeader);
 
         dataSet.getColumns().get(colIndex).setHeader(newHeader);
     }
 
-
-    // check for duplicate header for the columns
-    // if the header is null or duplicate, throw an exception
-    // header is case-insensitive
-    private void checkUniqueHeaders() {
-
-        for(Column column : dataSet.getColumns()){
+    // helper to rebuild UniqueHeaders each time
+    private void rebuildUniqueHeaders(DataSet dataSet) {
+        uniqueHeaders.clear();
+        for (Column column : dataSet.getColumns()) {
             String header = column.getHeader();
-
-            if(header == null){
-                // not sure what to do when header is empty.
-                // It just throws Exception right now
+            if (header == null) {
                 throw new IllegalArgumentException("Column header cannot be null.");
             }
-
             String cleanHeader = header.trim().toLowerCase();
-
-            if(uniqueHeaders.contains(cleanHeader)){
+            if (uniqueHeaders.contains(cleanHeader)) {
                 throw new IllegalArgumentException("Column header already exists.");
             }
-
             uniqueHeaders.add(cleanHeader);
         }
     }
 
     // find missing cells and return it as a log
     public List<MissingCell> findMissingCells() {
+        DataSet dataSet = requireCurrentDataSet();
+
         List<MissingCell> missingCells = new ArrayList<>();
 
         List<DataRow> rows = dataSet.getRows();
@@ -164,9 +235,6 @@ public class DataCleaner {
         }
 
         return missingCells;
-
-        //((row, header),(row, header), ...)
-        // Nore: should use column header for cell location
     }
 
     // helper to identify missing cells
@@ -181,7 +249,7 @@ public class DataCleaner {
      * - If the value is non-blank but fails validation -> returns null.
      * - If it passes validation -> returns the trimmed value.
      */
-    public String cleanValueForColumn(int columnIndex, String newValue) {
+    public String cleanValueForColumn(DataSet dataSet, int columnIndex, String newValue) {
         if (newValue == null) {
             return null;
         }
@@ -193,7 +261,7 @@ public class DataCleaner {
         }
 
         // get correct validator for the column
-        DataTypeValidator validator = getValidatorForColumn(columnIndex);
+        DataTypeValidator validator = getValidatorForColumn(dataSet, columnIndex);
         boolean valid = validator.isValid(trimmed);
 
         if (!valid) {
@@ -206,7 +274,7 @@ public class DataCleaner {
     }
 
     // helper to get right validator for allowed data type
-    private DataTypeValidator getValidatorForColumn(int columnIndex) {
+    private DataTypeValidator getValidatorForColumn(DataSet dataSet, int columnIndex) {
         DataType type = dataSet.getColumns().get(columnIndex).getDataType();
         DataTypeValidator validator = validators.get(type);
 

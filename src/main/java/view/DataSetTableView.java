@@ -1,5 +1,8 @@
 package view;
 
+import interface_adapter.cleaner.DataCleaningController;
+import interface_adapter.cleaner.DataCleaningViewModel;
+import interface_adapter.cleaner.DataCleaningState;
 import interface_adapter.load_csv.LoadController;
 import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
@@ -28,8 +31,6 @@ import org.knowm.xchart.XYChart;
 
 
 import javax.swing.*;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -44,8 +45,6 @@ import java.io.File;
 import java.util.*;
 import java.util.List;
 
-import use_case.cleaner.DataCleaningController;
-
 /**
  * Main table view for the Data Analysis Program.
  * Implements Use Case 2: Table Format Display
@@ -57,7 +56,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private static final int DEFAULT_FONT_SIZE = 12;
     private static final String FONT_NAME = "Segoe UI"; // Modern font
     private static final int DEFAULT_COLUMN_WIDTH = 120;
-    
+
     // Modern dark theme colors
     private static final Color BG_DARK = new Color(30, 30, 35);
     private static final Color BG_MEDIUM = new Color(40, 40, 45);
@@ -83,7 +82,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JPanel statsPanel;
     private JTextArea statsTextArea;
 
-        // >>> visualization
+    // >>> visualization
     /** Panel that holds the current visualization (XChart or heatmap). */
     private JPanel visualizationPanel;
     /** XChartPanel used to render XYChart charts. */
@@ -110,14 +109,15 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private final LoadViewModel loadViewModel;
     private SaveDataSetController saveController;
 
+    // data cleaning
+    private DataCleaningController dataCleaningController;
+    private final DataCleaningViewModel dataCleaningViewModel;
+    private boolean updatingFromCleaner = false;
+
     // >>> visualization
     private VisualizationController visualizationController;
     private final VisualizationViewModel visualizationViewModel;
     // <<< visualization
-
-    // Cleaning
-    private DataCleaningController cleaningController;
-    private boolean updatingFromCleaner = false;
 
     // Column selection for visualization
     private final Set<Integer> selectedColumns = new HashSet<>();
@@ -135,7 +135,9 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JButton visualizeButton;
     private JLabel selectedColumnsLabel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel, VisualizationViewModel visualizationViewModel) {
+    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel,
+                            LoadViewModel loadViewModel, VisualizationViewModel visualizationViewModel,
+                            DataCleaningViewModel dataCleaningViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -143,22 +145,24 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.tableViewModel.addPropertyChangeListener(this);
 
         this.loadViewModel = loadViewModel;
-        
+
         this.visualizationViewModel = visualizationViewModel;
         this.visualizationViewModel.addPropertyChangeListener(this);
         // <<< visualization
 
+        this.dataCleaningViewModel = dataCleaningViewModel;
+        this.dataCleaningViewModel.addPropertyChangeListener(this);
+
         initializeComponents();
         layoutComponents();
         setupEventHandlers();
-        attachTableListener();
     }
 
     private void initializeComponents() {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return true; // Make table editable
+                return true;
             }
         };
 
@@ -173,7 +177,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         dataTable.setForeground(FG_PRIMARY);
         dataTable.setSelectionBackground(ACCENT);
         dataTable.setSelectionForeground(Color.WHITE);
-        
+
         // Set custom header renderer for column selection
         JTableHeader header = dataTable.getTableHeader();
         header.setDefaultRenderer(new SelectableColumnHeaderRenderer());
@@ -192,8 +196,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         searchField.setForeground(FG_PRIMARY);
         searchField.setCaretColor(ACCENT);
         searchField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BG_LIGHT, 1),
-            BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
 
         searchButton = new JButton("Search");
@@ -275,27 +279,27 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         statsPanel = new JPanel(new BorderLayout(5, 5));
         statsPanel.setBackground(BG_DARK);
         statsPanel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(BG_LIGHT, 1),
-            "Summary Statistics",
-            0, 0,
-            new Font(FONT_NAME, Font.BOLD, 12),
-            FG_PRIMARY
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Summary Statistics",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
         ));
         JScrollPane statsScrollPane = new JScrollPane(statsTextArea);
         statsScrollPane.setBackground(BG_DARK);
         statsScrollPane.setBorder(BorderFactory.createEmptyBorder());
         statsPanel.add(statsScrollPane, BorderLayout.CENTER);
         statsPanel.setPreferredSize(new Dimension(250, 0));
-    
+
         // >>> visualization: create panel that will hold the chart / heatmap
         visualizationPanel = new JPanel(new BorderLayout());
         visualizationPanel.setBackground(BG_DARK);
         visualizationPanel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(BG_LIGHT, 1),
-            "Visualization",
-            0, 0,
-            new Font(FONT_NAME, Font.BOLD, 12),
-            FG_PRIMARY
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Visualization",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
         ));
         visualizationPanel.setPreferredSize(new Dimension(0, 250)); // height at bottom
 
@@ -304,11 +308,11 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         visualizationControlPanel.setLayout(new BoxLayout(visualizationControlPanel, BoxLayout.Y_AXIS));
         visualizationControlPanel.setBackground(BG_DARK);
         visualizationControlPanel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(BG_LIGHT, 1),
-            "Visualization Configuration",
-            0, 0,
-            new Font(FONT_NAME, Font.BOLD, 12),
-            FG_PRIMARY
+                BorderFactory.createLineBorder(BG_LIGHT, 1),
+                "Visualization Configuration",
+                0, 0,
+                new Font(FONT_NAME, Font.BOLD, 12),
+                FG_PRIMARY
         ));
 
         // Plot type selector (first)
@@ -406,7 +410,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
         // <<< visualization
     }
-
     private void layoutComponents() {
         setLayout(new BorderLayout(10, 10));
         setBackground(BG_DARK);
@@ -472,59 +475,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    /**
-     * TableModelListener that forwards user edits to the controller.
-     */
-    private void attachTableListener() {
-        tableModel.addTableModelListener(e -> {
-            // Ignore events while we are programmatically updating the table
-            if (updatingFromCleaner) {
-                return;
-            }
-
-
-            if (e.getType() != TableModelEvent.UPDATE) {
-                return;
-            }
-
-
-            int row = e.getFirstRow();
-            int column = e.getColumn();
-
-
-            // Sometimes UPDATE can be for all columns (-1)
-            // only care about single cell edit
-            if (row < 0 || column < 0) {
-                return;
-            }
-
-            // if there is no controller wired up yet
-            if (cleaningController  == null) {
-                return;
-            }
-
-
-            Object value = tableModel.getValueAt(row, column);
-            String rawValue = (value == null) ? null : value.toString();
-
-            cleaningController.handleUserEdit(row, column, rawValue);
-        });
-    }
-
-    /**
-     * Update the displayed column header in the JTable after a successful
-     * header edit in the underlying DataSet.
-     *
-     * @param colIndex  the index of the column whose header should change
-     * @param newHeader the new column header text to display
-     */
-    public void updateColumnHeader(int colIndex, String newHeader) {
-        dataTable.getColumnModel().getColumn(colIndex).setHeaderValue(newHeader);
-
-        // Force the header to repaint so the change appears immediately
-        dataTable.getTableHeader().repaint();
-    }
-
     private void setupEventHandlers() {
         searchButton.addActionListener(e -> performSearch());
         searchField.addActionListener(e -> performSearch());
@@ -551,13 +501,33 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 updateTableZoom();
             }
         });
-                // Visualization button handler
-                visualizeButton.addActionListener(e -> performVisualization());
-        
-                // Update controls when selection changes
-                xAxisComboBox.addActionListener(e -> updateVisualizeButtonState());
-                colorByComboBox.addActionListener(e -> updateVisualizeButtonState());
-        
+        // Visualization button handler
+        visualizeButton.addActionListener(e -> performVisualization());
+
+        // Update controls when selection changes
+        xAxisComboBox.addActionListener(e -> updateVisualizeButtonState());
+        colorByComboBox.addActionListener(e -> updateVisualizeButtonState());
+
+        // Data cleaning: when user edits a cell, move to controller
+        dataTable.getModel().addTableModelListener(e -> {
+            if (updatingFromCleaner) {
+                // change came from presenter -> view, ignore to avoid infinite loop
+                return;
+            }
+
+            int rowIndex = e.getFirstRow();
+            int colIndex = e.getColumn();
+            if (rowIndex < 0 || colIndex < 0) {
+                return;
+            }
+
+            Object value = dataTable.getValueAt(rowIndex, colIndex);
+            String rawValue = (value == null) ? null : value.toString();
+
+            if (dataCleaningController != null) {
+                dataCleaningController.handleUserEdit(rowIndex, colIndex, rawValue);
+            }
+        });
 
         saveAsItem.addActionListener(e -> promptSaveDialog());
 
@@ -604,7 +574,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Save Dataset");
         fileChooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
-        fileChooser.setSelectedFile(new File("dataset.csv"));
 
         int userSelection = fileChooser.showSaveDialog(this);
         if (userSelection != JFileChooser.APPROVE_OPTION) {
@@ -612,18 +581,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
 
         File selectedFile = fileChooser.getSelectedFile();
-        if (selectedFile == null || selectedFile.getName().trim().isEmpty()) {
-            // Trigger existing validation path so the presenter shows the "empty ID" message.
-            try {
-                saveController.execute("");
-            } catch (java.io.IOException e) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Failed to save dataset: " + e.getMessage(),
-                        "Save Dataset",
-                        JOptionPane.ERROR_MESSAGE
-                );
-            }
+        if (selectedFile == null || selectedFile.isDirectory()) {
             return;
         }
 
@@ -654,20 +612,6 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     JOptionPane.ERROR_MESSAGE
             );
         }
-    }
-
-    // helper for dataCleaningController
-    public void setUpdatingFromCleaner(boolean updatingFromCleaner) {
-        this.updatingFromCleaner = updatingFromCleaner;
-    }
-
-    public void updateCellFromCleaner(int rowIndex, int colIndex, String cleanedValue) {
-        tableModel.setValueAt(cleanedValue, rowIndex, colIndex);
-    }
-
-    public void refreshFromDataSet(DataSet dataSet) {
-        // for updating view when dataset is edited
-        // TODO: integrate with TableViewModel / TableController if needed
     }
 
     private void performSearch() {
@@ -726,29 +670,29 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         for (int i = 0; i < dataTable.getColumnCount(); i++) {
             dataTable.getColumnModel().getColumn(i).setPreferredWidth(scaledWidth);
         }
-        
+
         // Update visualization controls when table data changes
         updateVisualizationControls();
     }
-    
+
     private void updateVisualizationControls() {
         // Clear previous selections
         selectedColumns.clear();
         currentSubsetSpec = null;
-        
+
         // Update role selectors based on current plot type
         updateRoleSelectors();
-        
+
         updateSelectedColumnsLabel();
         updateVisualizeButtonState();
     }
-    
+
     private void updateRoleSelectors() {
         PlotKind plotKind = (PlotKind) plotTypeComboBox.getSelectedItem();
         if (plotKind == null) {
             return;
         }
-        
+
         // Get selected column names
         List<String> selectedColumnNames = getSelectedColumnNames();
         updateSubsetSpec(selectedColumnNames);
@@ -764,18 +708,18 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
             return;
         }
-        
+
         // Update X-axis selector - only show selected columns that match plot type requirements
         xAxisComboBox.removeAllItems();
         xAxisComboBox.addItem("(Select column)");
-        
+
         List<String> xAxisColumns = getXAxisColumns(plotKind);
         for (String colName : selectedColumnNames) {
             if (xAxisColumns.contains(colName)) {
                 xAxisComboBox.addItem(colName);
             }
         }
-        
+
         // Update Color By selector - shows all categorical columns
         colorByComboBox.removeAllItems();
         colorByComboBox.addItem("(None)");
@@ -797,7 +741,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
     }
-    
+
     private void updateSubsetSpec(List<String> columnNames) {
         if (columnNames.isEmpty()) {
             currentSubsetSpec = null;
@@ -805,7 +749,43 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
         currentSubsetSpec = buildSubsetSpec(columnNames);
     }
-    
+
+    private void handleCleaningStateChange(DataCleaningState state) {
+        // 1. Update edited cell
+        int row = state.getLastEditedRowIndex();
+        int col = state.getLastEditedColIndex();
+        String value = state.getLastCleanedValue();
+
+        if (row >= 0 && col >= 0 && row < dataTable.getRowCount()
+                && col < dataTable.getColumnCount()) {
+            updatingFromCleaner = true;
+            dataTable.setValueAt(value, row, col);
+            updatingFromCleaner = false;
+        }
+
+        // 2. Update header
+        int headerCol = state.getLastEditedHeaderColIndex();
+        String headerValue = state.getLastEditedHeaderValue();
+        if (headerCol >= 0 && headerValue != null
+                && headerCol < dataTable.getColumnCount()) {
+            dataTable.getColumnModel()
+                    .getColumn(headerCol)
+                    .setHeaderValue(headerValue);
+            dataTable.getTableHeader().repaint();
+        }
+
+        // 3. Show header error message, if any is there
+        String error = state.getHeaderErrorMessage();
+        if (error != null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    error,
+                    "Header Edit Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
     private DataSubsetSpec buildSubsetSpec(Collection<String> columnNames) {
         return new DataSubsetSpec(
                 "visualization-subset",
@@ -813,7 +793,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 getAllRowIndices()
         );
     }
-    
+
     private DataSubsetSpec buildVisualizationSubsetSpec(String xAxisColumn,
                                                         List<String> yColumns,
                                                         String colorByColumn) {
@@ -838,27 +818,27 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     }
 
 
-    
+
     private List<String> getSelectedColumnNames() {
         List<String> selectedNames = new ArrayList<>();
         if (dataTable.getColumnCount() == 0) {
             return selectedNames;
         }
-        
+
         String[] headers = new String[dataTable.getColumnCount()];
         for (int i = 0; i < headers.length; i++) {
             headers[i] = (String) dataTable.getColumnModel().getColumn(i).getHeaderValue();
         }
-        
+
         for (Integer colIndex : selectedColumns) {
             if (colIndex < headers.length) {
                 selectedNames.add(headers[colIndex]);
             }
         }
-        
+
         return selectedNames;
     }
-    
+
     private List<String> getXAxisColumns(PlotKind plotKind) {
         // Bar charts need categorical X-axis, others need numeric
         if (plotKind == PlotKind.BAR) {
@@ -867,27 +847,27 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             return getNumericColumnNames();
         }
     }
-    
+
     private List<String> getCategoricalColumnNames() {
         List<String> categoricalColumns = new ArrayList<>();
         if (tableGateway == null) {
             return categoricalColumns;
         }
-        
+
         DataSet dataSet = tableGateway.load();
         if (dataSet == null) {
             return categoricalColumns;
         }
-        
+
         for (Column column : dataSet.getColumns()) {
             if (column.getDataType() == DataType.CATEGORICAL) {
                 categoricalColumns.add(column.getHeader());
             }
         }
-        
+
         return categoricalColumns;
     }
-    
+
     private void addYAxisSelector() {
         JPanel yAxisRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         yAxisRow.setBackground(BG_DARK);
@@ -897,7 +877,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         yCombo.setBackground(BG_MEDIUM);
         yCombo.setForeground(FG_PRIMARY);
         yCombo.addItem("(Select column)");
-        
+
         // Only show selected numeric columns
         List<String> selectedColumnNames = getSelectedColumnNames();
         List<String> numericColumns = getNumericColumnNames();
@@ -906,11 +886,11 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 yCombo.addItem(colName);
             }
         }
-        
+
         yCombo.addActionListener(e -> updateVisualizeButtonState());
         yAxisComboBoxes.add(yCombo);
         yAxisRow.add(yCombo);
-        
+
         // Add remove button if more than one Y-axis
         if (yAxisComboBoxes.size() > 1) {
             JButton removeButton = new JButton("×");
@@ -928,34 +908,34 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             });
             yAxisRow.add(removeButton);
         }
-        
+
         yAxisPanel.add(yAxisRow);
         yAxisPanel.revalidate();
         yAxisPanel.repaint();
         updateVisualizeButtonState();
     }
 
-    
+
     private List<String> getNumericColumnNames() {
         List<String> numericColumns = new ArrayList<>();
         if (tableGateway == null) {
             return numericColumns;
         }
-        
+
         DataSet dataSet = tableGateway.load();
         if (dataSet == null) {
             return numericColumns;
         }
-        
+
         for (Column column : dataSet.getColumns()) {
             if (column.getDataType() == DataType.NUMERIC) {
                 numericColumns.add(column.getHeader());
             }
         }
-        
+
         return numericColumns;
     }
-    
+
     private void updateSelectedColumnsLabel() {
         if (selectedColumns.isEmpty()) {
             selectedColumnsLabel.setText("Selected: None (click column headers to select)");
@@ -965,7 +945,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             for (int i = 0; i < headers.length; i++) {
                 headers[i] = (String) dataTable.getColumnModel().getColumn(i).getHeaderValue();
             }
-            
+
             List<String> selectedNames = new ArrayList<>();
             for (Integer colIndex : selectedColumns) {
                 if (colIndex < headers.length) {
@@ -976,30 +956,30 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             selectedColumnsLabel.setForeground(ACCENT);
         }
     }
-    
+
     private void updateVisualizeButtonState() {
         // Early return if button not yet initialized
         if (visualizeButton == null || plotTypeComboBox == null || xAxisComboBox == null) {
             return;
         }
-        
+
         PlotKind plotKind = (PlotKind) plotTypeComboBox.getSelectedItem();
         if (plotKind == null) {
             visualizeButton.setEnabled(false);
             return;
         }
-        
+
         // Check X-axis is selected
         String xAxis = (String) xAxisComboBox.getSelectedItem();
         boolean xAxisValid = xAxis != null && !xAxis.equals("(Select column)");
-        
+
         // Check at least one Y-axis is selected
         boolean yAxisValid = yAxisComboBoxes != null && yAxisComboBoxes.stream()
                 .anyMatch(combo -> {
                     String selected = (String) combo.getSelectedItem();
                     return selected != null && !selected.equals("(Select column)");
                 });
-        
+
         // Heatmap requires at least 2 columns
         boolean plotTypeValid = true;
         if (plotKind == PlotKind.HEATMAP && yAxisComboBoxes != null) {
@@ -1011,35 +991,35 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     .count();
             plotTypeValid = selectedYCount >= 2;
         }
-        
+
         visualizeButton.setEnabled(xAxisValid && yAxisValid && plotTypeValid);
     }
-    
+
     private void filterPlotTypes() {
         // Remove all items
         plotTypeComboBox.removeAllItems();
-        
+
         // Add all plot types - we'll enable/disable based on selection
         plotTypeComboBox.addItem(PlotKind.SCATTER);
         plotTypeComboBox.addItem(PlotKind.LINE);
         plotTypeComboBox.addItem(PlotKind.BAR);
         plotTypeComboBox.addItem(PlotKind.HISTOGRAM);
         plotTypeComboBox.addItem(PlotKind.HEATMAP);
-        
+
         // Update enabled state
         updatePlotTypeEnabledState();
     }
-    
+
     private void updatePlotTypeEnabledState() {
         int numSelected = selectedColumns.size();
-        
+
         // Create a custom renderer to grey out disabled items
         plotTypeComboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                    boolean isSelected, boolean cellHasFocus) {
+                                                          boolean isSelected, boolean cellHasFocus) {
                 Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                
+
                 if (value instanceof PlotKind plotKind) {
                     boolean enabled = isPlotTypeEnabled(plotKind, numSelected);
                     c.setEnabled(enabled);
@@ -1047,12 +1027,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                         c.setForeground(Color.GRAY);
                     }
                 }
-                
+
                 return c;
             }
         });
     }
-    
+
     private boolean isPlotTypeEnabled(PlotKind plotKind, int numSelected) {
         // Heatmap requires at least 2 columns
         if (plotKind == PlotKind.HEATMAP) {
@@ -1061,7 +1041,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         // Other plot types can handle 1+ columns
         return numSelected >= 1;
     }
-    
+
     private void performVisualization() {
         if (visualizationController == null || tableGateway == null) {
             JOptionPane.showMessageDialog(this,
@@ -1070,12 +1050,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         PlotKind plotKind = (PlotKind) plotTypeComboBox.getSelectedItem();
         if (plotKind == null) {
             return;
         }
-        
+
         // Get X-axis column
         String xAxisColumn = (String) xAxisComboBox.getSelectedItem();
         if (xAxisColumn == null || xAxisColumn.equals("(Select column)")) {
@@ -1085,7 +1065,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         // Get Y-axis columns
         List<String> yColumns = new ArrayList<>();
         for (JComboBox<String> yCombo : yAxisComboBoxes) {
@@ -1094,7 +1074,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 yColumns.add(selected);
             }
         }
-        
+
         if (yColumns.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "Please select at least one Y-axis column",
@@ -1102,13 +1082,13 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         // Get Color By column (optional)
         String colorByColumn = (String) colorByComboBox.getSelectedItem();
         if (colorByColumn != null && colorByColumn.equals("(None)")) {
             colorByColumn = null;
         }
-        
+
         // Create DataSubsetSpec (include selected columns plus required role columns)
         DataSubsetSpec subsetSpec = buildVisualizationSubsetSpec(xAxisColumn, yColumns, colorByColumn);
         currentSubsetSpec = subsetSpec;
@@ -1125,7 +1105,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         if (colorByColumn != null) {
             title += " (by " + colorByColumn + ")";
         }
-        
+
         // Create VisualizationInputData with role-based configuration
         VisualizationInputData inputData = new VisualizationInputData(
                 summaryReportId,
@@ -1136,19 +1116,19 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 colorByColumn,
                 title
         );
-        
+
         // Execute visualization
         visualizationController.visualize(inputData);
     }
-    
+
     // Custom header renderer to highlight selected columns
     private class SelectableColumnHeaderRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
-                                                      boolean isSelected, boolean hasFocus,
-                                                      int row, int column) {
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            
+
             if (selectedColumns.contains(column)) {
                 c.setBackground(SELECTED_COLUMN);
                 c.setForeground(FG_PRIMARY);
@@ -1156,23 +1136,23 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 c.setBackground(BG_MEDIUM);
                 c.setForeground(FG_PRIMARY);
             }
-            
+
             return c;
         }
     }
-    
+
     // Mouse listener for column header clicks
     private class ColumnHeaderMouseListener extends MouseAdapter {
         @Override
         public void mouseClicked(MouseEvent e) {
             JTableHeader header = (JTableHeader) e.getSource();
             int column = header.columnAtPoint(e.getPoint());
-            
+
             if (column >= 0) {
                 // Check if column is numeric
                 String columnName = (String) dataTable.getColumnModel().getColumn(column).getHeaderValue();
                 List<String> numericColumns = getNumericColumnNames();
-                
+
                 if (!numericColumns.contains(columnName)) {
                     JOptionPane.showMessageDialog(DataSetTableView.this,
                             "Only numeric columns can be visualized",
@@ -1180,14 +1160,14 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                             JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                
+
                 // Toggle selection
                 if (selectedColumns.contains(column)) {
                     selectedColumns.remove(column);
                 } else {
                     selectedColumns.add(column);
                 }
-                
+
                 // Update UI
                 header.repaint();
                 updateSelectedColumnsLabel();
@@ -1197,7 +1177,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
     }
-    
+
 
     // >>> visualization: helper to update the chart panel from the ViewModel state
     private void displayChart(XYChart chart) {
@@ -1267,9 +1247,15 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                 }
             }
             // <<< visualization
+
+            // >>> cleaning: Handle DataCleaningState
+            else if (newValue instanceof DataCleaningState) {
+                handleCleaningStateChange((DataCleaningState) newValue);
+            }
+            // <<< cleaning
         }
     }
-    
+
     private List<Integer> getAllRowIndices() {
         int rowCount = dataTable.getRowCount();
         List<Integer> rowIndices = new ArrayList<>(rowCount);
@@ -1303,13 +1289,13 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.saveController = controller;
     }
 
-      // >>> visualization
-      public void setVisualizationController(VisualizationController controller) {
-        this.visualizationController = controller;
+    public void setDataCleaningController(DataCleaningController controller) {
+        this.dataCleaningController = controller;
     }
 
-    public void setCleaningController(DataCleaningController cleaningController ) {
-        this.cleaningController  = cleaningController;
+    // >>> visualization
+    public void setVisualizationController(VisualizationController controller) {
+        this.visualizationController = controller;
     }
 
     public void setTableGateway(CurrentTableGateway gateway) {

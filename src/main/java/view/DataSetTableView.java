@@ -549,6 +549,21 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         }
 
         File selectedFile = fileChooser.getSelectedFile();
+        if (selectedFile == null || selectedFile.getName().trim().isEmpty()) {
+            // Trigger existing validation path so the presenter shows the "empty ID" message.
+            try {
+                saveController.execute("");
+            } catch (java.io.IOException e) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Failed to save dataset: " + e.getMessage(),
+                        "Save Dataset",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+            return;
+        }
+
         if (!selectedFile.getName().toLowerCase().endsWith(".csv")) {
             selectedFile = new File(selectedFile.getParentFile(), selectedFile.getName() + ".csv");
         }
@@ -566,7 +581,16 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         }
 
-        saveController.execute(selectedFile.getAbsolutePath());
+        try {
+            saveController.execute(selectedFile.getAbsolutePath());
+        } catch (java.io.IOException e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Failed to save dataset: " + e.getMessage(),
+                    "Save Dataset",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
     private void performSearch() {

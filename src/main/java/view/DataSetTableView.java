@@ -1,5 +1,7 @@
 package view;
 
+import interface_adapter.load_api.LoadAPIController;
+import interface_adapter.load_api.LoadAPIViewModel;
 import interface_adapter.load_csv.LoadController;
 import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
@@ -36,6 +38,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
@@ -74,7 +78,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     private JMenuBar menuBar;
     private JMenu importMenu;
     private JMenuItem loadCSVItem;
-    private JMenuItem kaggleItem;
+    private JMenuItem CkanItem;
     private JMenu saveMenu;
     private JMenuItem saveAsItem;
     private JMenu visualizationMenu;
@@ -106,6 +110,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private LoadController loadController;
     private final LoadViewModel loadViewModel;
+    private LoadAPIController loadAPIController;
+    private final LoadAPIViewModel loadAPIViewModel;
     private SaveDataSetController saveController;
 
         // >>> visualization
@@ -139,8 +145,12 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         private JButton visualizeButton;
         private JLabel selectedColumnsLabel;
 
-    public DataSetTableView(SearchViewModel searchViewModel, TableViewModel tableViewModel, LoadViewModel loadViewModel,
-                            VisualizationViewModel visualizationViewModel, SummaryStatisticsViewModel statisticsViewModel) {
+    public DataSetTableView(SearchViewModel searchViewModel,
+                            TableViewModel tableViewModel,
+                            LoadViewModel loadViewModel,
+                            LoadAPIViewModel loadAPIViewModel,
+                            VisualizationViewModel visualizationViewModel,
+                            SummaryStatisticsViewModel statisticsViewModel) {
         this.searchViewModel = searchViewModel;
         this.searchViewModel.addPropertyChangeListener(this);
 
@@ -148,6 +158,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.tableViewModel.addPropertyChangeListener(this);
 
         this.loadViewModel = loadViewModel;
+        this.loadAPIViewModel = loadAPIViewModel;
         
         this.visualizationViewModel = visualizationViewModel;
         this.visualizationViewModel.addPropertyChangeListener(this);
@@ -247,10 +258,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         importMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
         loadCSVItem = new JMenuItem("Load from CSV");
         loadCSVItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
-        kaggleItem = new JMenuItem("Load from Kaggle");
-        kaggleItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
+        CkanItem = new JMenuItem("Load from CKAN");
+        CkanItem.setFont(new Font(FONT_NAME, Font.PLAIN, 11));
         importMenu.add(loadCSVItem);
-        importMenu.add(kaggleItem);
+        importMenu.add(CkanItem);
 
         saveMenu = new JMenu("Save");
         saveMenu.setFont(new Font(FONT_NAME, Font.BOLD, 11));
@@ -602,8 +613,34 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
             }
         });
 
-        kaggleItem.addActionListener(e -> {
-//            TODO implement loadkaggleusecase
+        CkanItem.addActionListener(e -> {
+            JFrame frame = new JFrame("CKAN Item");
+            JDialog popup = new JDialog(frame, "Enter Dataset Name", true);
+            popup.setSize(250, 150);
+            popup.setLayout(null);
+
+            JLabel label = new JLabel("Enter Dataset Name:");
+            label.setBounds(20, 10, 200, 25);
+
+            JTextField nameField = new JTextField();
+            nameField.setBounds(20, 40, 200, 25);
+
+            JButton doneBtn = new JButton("Done");
+            doneBtn.setBounds(70, 75, 80, 30);
+
+            doneBtn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    popup.dispose();
+                    loadAPIController.execute(nameField.getText());
+                }
+            });
+            popup.add(label);
+            popup.add(nameField);
+            popup.add(doneBtn);
+
+            popup.setLocationRelativeTo(frame);
+            popup.setVisible(true);
         });
 
         loadViewModel.addPropertyChangeListener(evt -> {
@@ -616,6 +653,21 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
                     break;
                 case "success":
                     if (loadViewModel.isSuccess()) {
+                        loadTable();
+                    }
+                    break;
+            }
+        });
+        loadAPIViewModel.addPropertyChangeListener(evt -> {
+            switch (evt.getPropertyName()) {
+                case "errorMessage":
+                    JOptionPane.showMessageDialog(this,
+                            loadAPIViewModel.getErrorMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    break;
+                case "success":
+                    if (loadAPIViewModel.isSuccess()) {
                         loadTable();
                     }
                     break;
@@ -1406,6 +1458,10 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     public void setLoadController(LoadController loadController) {
         this.loadController = loadController;
+    }
+
+    public void setLoadAPIController(LoadAPIController loadAPIController) {
+        this.loadAPIController = loadAPIController;
     }
 
     public void setImportController(Object controller) {

@@ -6,9 +6,22 @@ import entity.DataSubsetSpec;
  * The input data for the Summary Statistics Use Case.
  */
 public class SummaryStatisticsInputData {
-    private int dataSubsetId;
-    private String reportName;
-    private DataSubsetSpec dataSubsetSpec;
+    private final int dataSubsetId;
+    private final String reportName;
+    private final DataSubsetSpec dataSubsetSpec;
+
+    /**
+     * Constructs input data for the Summary Statistics use case.
+     *
+     * @param dataSubsetId unique identifier for this data subset
+     * @param reportName name of the report to be generated
+     * @param dataSubsetSpec specification of which data to analyze
+     */
+    public SummaryStatisticsInputData(int dataSubsetId, String reportName, DataSubsetSpec dataSubsetSpec) {
+        this.dataSubsetId = dataSubsetId;
+        this.reportName = reportName;
+        this.dataSubsetSpec = dataSubsetSpec;
+    }
 
     public int getDataSubsetId() {
         return dataSubsetId;

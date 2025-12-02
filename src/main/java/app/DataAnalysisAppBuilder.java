@@ -28,10 +28,22 @@ import use_case.save_dataset.SaveDataSetOutputBoundary;
 import use_case.table.DisplayTableInputBoundary;
 import use_case.table.DisplayTableInteractor;
 import view.DataSetTableView;
-
+import data_access.InMemoryDataSubsetGateway;
+import data_access.InMemorySummaryReportGateway;
 import javax.swing.*;
 import java.awt.*;
 import data_access.FileSaveDataSetDataAccessObject;
+import interface_adapter.visualization.VisualizationController;
+import interface_adapter.visualization.VisualizationPresenter;
+import interface_adapter.visualization.VisualizationViewModel;
+
+import use_case.visualization.gateway.DataSubsetGateway;
+import use_case.visualization.gateway.SummaryReportGateway;
+import use_case.visualization.interactor.VisualizationInteractor;
+import use_case.visualization.io.VisualizationInputBoundary;
+import use_case.visualization.io.VisualizationOutputBoundary;
+import use_case.visualization.model.PlotKindModelFactory;
+
 
 public class DataAnalysisAppBuilder {
     private final JPanel cardPanel = new JPanel();
@@ -42,17 +54,29 @@ public class DataAnalysisAppBuilder {
     private SearchViewModel searchViewModel;
     private TableViewModel tableViewModel;
     private LoadViewModel loadViewModel;
+
+    private VisualizationViewModel visualizationViewModel;
+
     private final CurrentTableGateway tableGateway = new InMemoryTableGateway();
+
+    private final DataSubsetGateway dataSubsetGateway;
+    private final SummaryReportGateway summaryReportGateway;
 
     public DataAnalysisAppBuilder() {
         cardPanel.setLayout(cardLayout);
+                // Single current dataset in memory
+
+                // Visualization gateways, based on the single current dataset
+                this.dataSubsetGateway = new InMemoryDataSubsetGateway(tableGateway);
+                this.summaryReportGateway = new InMemorySummaryReportGateway();
     }
 
     public DataAnalysisAppBuilder addDataSetTableView() {
         searchViewModel = new SearchViewModel();
         tableViewModel = new TableViewModel();
         loadViewModel = new LoadViewModel();
-        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel);
+        visualizationViewModel = new VisualizationViewModel();
+        dataSetTableView = new DataSetTableView(searchViewModel, tableViewModel, loadViewModel, visualizationViewModel);
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
     }
@@ -94,6 +118,39 @@ public class DataAnalysisAppBuilder {
         dataSetTableView.setSaveController(saveController);
         return this;
     }
+        /**
+     * Wires the Visualization use case:
+     *  - VisualizationInteractor
+     *  - VisualizationPresenter
+     *  - VisualizationController
+     *
+     * Uses:
+     *  - DataSubsetGateway (to load numeric subset data)
+     *  - SummaryReportGateway (to load SummaryReport for highlighting)
+     *  - PlotKindModelFactory (to choose the right VisualizationModel)
+     */
+        public DataAnalysisAppBuilder addVisualizationUseCase() {
+            VisualizationOutputBoundary presenter =
+                    new VisualizationPresenter(visualizationViewModel);
+    
+            PlotKindModelFactory plotKindModelFactory =
+                    new PlotKindModelFactory(); // assumes a no-arg ctor that registers point + heatmap factories
+    
+            VisualizationInputBoundary interactor =
+                    new VisualizationInteractor(
+                            dataSubsetGateway,
+                            summaryReportGateway,
+                            presenter,
+                            plotKindModelFactory
+                    );
+    
+            VisualizationController controller =
+                    new VisualizationController(interactor);
+    
+            dataSetTableView.setVisualizationController(controller);
+            dataSetTableView.setTableGateway(tableGateway);
+            return this;
+        }
 
     /**
      * Loads sample data into the application.

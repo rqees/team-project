@@ -9,9 +9,9 @@ public class SummaryStatisticsState {
 
     private String reportName = "";
     private String datasetDescription = "";
-    private Map<String, ColumnStatistics> columnStats = null;
-    private String errorMessage = null;
-    private boolean isCalculating = false;
+    private Map<String, ColumnStatistics> columnStats;
+    private String errorMessage;
+    private boolean isCalculating;
 
     // Copy constructor
     public SummaryStatisticsState(SummaryStatisticsState copy) {
@@ -88,12 +88,26 @@ public class SummaryStatisticsState {
             this.count = count;
         }
 
-        public String getColumnName() { return columnName; }
-        public String getMean() { return mean; }
-        public String getMedian() { return median; }
-        public String getStandardDeviation() { return standardDeviation; }
-        public String getMin() { return min; }
-        public String getMax() { return max; }
-        public String getCount() { return count; }
+        public String getColumnName() {
+            return columnName;
+        }
+        public String getMean() {
+            return mean;
+        }
+        public String getMedian() {
+            return median;
+        }
+        public String getStandardDeviation() {
+            return standardDeviation;
+        }
+        public String getMin() {
+            return min;
+        }
+        public String getMax() {
+            return max;
+        }
+        public String getCount() {
+            return count;
+        }
     }
 }

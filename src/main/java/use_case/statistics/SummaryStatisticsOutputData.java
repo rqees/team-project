@@ -1,10 +1,11 @@
 package use_case.statistics;
 
-import entity.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import entity.*;
+
 
 /**
  * Output data for the Summary Statistics Use Case.
@@ -27,7 +28,7 @@ public class SummaryStatisticsOutputData {
         this.summaryId = report.getSummaryId();
         this.reportName = report.getReportName();
 
-        DataSubsetSpec subset = report.getSelectedSubset();
+        final DataSubsetSpec subset = report.getSelectedSubset();
         this.datasetId = subset.getSubsetId();
         this.numColumns = subset.getColumnNames().size();
         this.numRows = subset.getRowIndices().size();
@@ -38,24 +39,26 @@ public class SummaryStatisticsOutputData {
 
     /**
      * Extracts column metrics from entity list into primitive data structure.
+     * @return Map<String, ColumnMetricsData> column name and metrics associated.
+     * @param metrics computed metrics.
      */
     private Map<String, ColumnMetricsData> extractColumnMetrics(List<SummaryMetric> metrics) {
-        Map<String, ColumnMetricsData> result = new HashMap<>();
+        final Map<String, ColumnMetricsData> result = new HashMap<>();
 
         for (SummaryMetric metric : metrics) {
             if (!(metric instanceof ScalarSummaryMetrics)) {
                 continue;
             }
 
-            ScalarSummaryMetrics scalarMetric = (ScalarSummaryMetrics) metric;
-            DataSubsetSpec metricSubset = scalarMetric.getSelectedSubset();
+            final ScalarSummaryMetrics scalarMetric = (ScalarSummaryMetrics) metric;
+            final DataSubsetSpec metricSubset = scalarMetric.getSelectedSubset();
 
             // Scalar metrics for single columns
             if (metricSubset.getColumnNames().size() == 1) {
-                String columnName = metricSubset.getColumnNames().get(0);
+                final String columnName = metricSubset.getColumnNames().get(0);
 
                 // Get or create data holder
-                ColumnMetricsData data = result.computeIfAbsent(
+                final ColumnMetricsData data = result.computeIfAbsent(
                         columnName,
                         k -> new ColumnMetricsData(columnName)
                 );
@@ -98,12 +101,12 @@ public class SummaryStatisticsOutputData {
      */
     public static class ColumnMetricsData {
         private final String columnName;
-        private double mean = 0.0;
-        private double median = 0.0;
-        private double standardDeviation = 0.0;
-        private double min = 0.0;
-        private double max = 0.0;
-        private long count = 0;
+        private double mean;
+        private double median;
+        private double standardDeviation;
+        private double min;
+        private double max;
+        private long count;
 
         public ColumnMetricsData(String columnName) {
             this.columnName = columnName;
@@ -133,12 +136,26 @@ public class SummaryStatisticsOutputData {
         }
 
         // Getters return primitives
-        public String getColumnName() { return columnName; }
-        public double getMean() { return mean; }
-        public double getMedian() { return median; }
-        public double getStandardDeviation() { return standardDeviation; }
-        public double getMin() { return min; }
-        public double getMax() { return max; }
-        public long getCount() { return count; }
+        public String getColumnName() {
+            return columnName;
+        }
+        public double getMean() {
+            return mean;
+        }
+        public double getMedian() {
+            return median;
+        }
+        public double getStandardDeviation() {
+            return standardDeviation;
+        }
+        public double getMin() {
+            return min;
+        }
+        public double getMax() {
+            return max;
+        }
+        public long getCount() {
+            return count;
+        }
     }
 }

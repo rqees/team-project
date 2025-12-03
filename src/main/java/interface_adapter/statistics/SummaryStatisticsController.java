@@ -1,18 +1,20 @@
 package interface_adapter.statistics;
 
+import java.util.List;
+
 import use_case.statistics.SummaryStatisticsInputBoundary;
 import use_case.statistics.SummaryStatisticsInputData;
 
-import java.util.List;
 
 /**
- * Controller for Summary Statistics
+ * Controller for Summary Statistics.
  */
 public class SummaryStatisticsController {
 
     private final SummaryStatisticsInputBoundary interactor;
 
-    public SummaryStatisticsController(SummaryStatisticsInputBoundary interactor) {
+    public SummaryStatisticsController(final SummaryStatisticsInputBoundary interactor) {
+
         this.interactor = interactor;
     }
 
@@ -25,26 +27,25 @@ public class SummaryStatisticsController {
      * @param rowIndices list of row indices to include in analysis
      */
     public void calculateStatistics(
-            int dataSubsetId,
-            String reportName,
-            String datasetId,
-            List<String> columnNames,
-            List<Integer> rowIndices) {
+            final int dataSubsetId,
+            final String reportName,
+            final String datasetId,
+            final List<String> columnNames,
+            final List<Integer> rowIndices) {
 
         try {
             // Create input data with primitives
             // InputData creates entities internally - Controller never touches entities
-            SummaryStatisticsInputData inputData = new SummaryStatisticsInputData(
+            final SummaryStatisticsInputData inputData = new SummaryStatisticsInputData(
                     dataSubsetId,
                     reportName,
-                    datasetId,      // Primitive
-                    columnNames,    // Primitive
-                    rowIndices      // Primitive
+                    datasetId,
+                    columnNames,
+                    rowIndices
             );
 
             // Execute the use case
             interactor.execute(inputData);
-
         } catch (IllegalArgumentException e) {
             System.err.println("Controller validation error: " + e.getMessage());
             throw e;
@@ -60,11 +61,11 @@ public class SummaryStatisticsController {
      * @param totalRows total number of rows in the dataset
      */
     public void calculateStatisticsAllRows(
-            int dataSubsetId,
-            String reportName,
-            String datasetId,
-            List<String> columnNames,
-            int totalRows) {
+            final int dataSubsetId,
+            final String reportName,
+            final String datasetId,
+            final List<String> columnNames,
+            final int totalRows) {
 
         // Create list of all row indices
         List<Integer> allRowIndices = new java.util.ArrayList<>();
@@ -72,6 +73,7 @@ public class SummaryStatisticsController {
             allRowIndices.add(i);
         }
 
-        calculateStatistics(dataSubsetId, reportName, datasetId, columnNames, allRowIndices);
+        calculateStatistics(dataSubsetId, reportName,
+                datasetId, columnNames, allRowIndices);
     }
 }

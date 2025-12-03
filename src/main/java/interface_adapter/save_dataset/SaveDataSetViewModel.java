@@ -17,7 +17,7 @@ public final class SaveDataSetViewModel {
      */
     private String message;
     /**
-     * Nullable so the first save result (success or failure) triggers a change event.
+     * First save result (success or failure) triggers a change event.
      */
     private Boolean success;
 

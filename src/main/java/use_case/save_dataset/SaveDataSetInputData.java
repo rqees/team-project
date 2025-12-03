@@ -12,7 +12,6 @@ public final class SaveDataSetInputData {
 
     /**
      * Creates input data for saving a dataset.
-     *
      * @param datasetId identifier to associate with the saved dataset
      */
     public SaveDataSetInputData(final String datasetId) {
@@ -21,7 +20,6 @@ public final class SaveDataSetInputData {
 
     /**
      * Returns the identifier to save the dataset under.
-     *
      * @return dataset identifier
      */
     public String getDatasetId() {

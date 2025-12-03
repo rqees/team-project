@@ -22,7 +22,6 @@ public final class SaveDataSetPresenter implements SaveDataSetOutputBoundary {
 
     /**
      * Publishes the save result to the view model.
-     *
      * @param outputData output data describing the save attempt
      */
     @Override

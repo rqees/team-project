@@ -15,7 +15,6 @@ public final class SaveDataSetController {
 
     /**
      * Creates a controller for the save dataset use case.
-     *
      * @param interactor the interactor that performs the save operation
      */
     public SaveDataSetController(final SaveDataSetInputBoundary interactor) {
@@ -24,7 +23,6 @@ public final class SaveDataSetController {
 
     /**
      * Initiates a dataset save with the provided identifier or path.
-     *
      * @param datasetId name of the saved dataset or path chosen by the user.
      */
     public void execute(final String datasetId) throws java.io.IOException {

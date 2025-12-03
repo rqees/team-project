@@ -8,9 +8,8 @@ import entity.DataSet;
 public interface SaveDataSetDataAccessInterface {
     /**
      * Persists the provided dataset with the given identifier.
-     *
      * @param id      target identifier or path for the dataset
      * @param dataSet dataset contents to persist
      */
-    void save(final String id, final DataSet dataSet) throws java.io.IOException;
+    void save(String id, DataSet dataSet) throws java.io.IOException;
 }

@@ -38,7 +38,6 @@ public final class SaveDataSetInteractor implements SaveDataSetInputBoundary {
 
     /**
      * Executes the save dataset use case.
-     *
      * @param inputData contains the target identifier for the dataset
      */
     @Override

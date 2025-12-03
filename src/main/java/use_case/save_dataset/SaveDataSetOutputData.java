@@ -14,16 +14,15 @@ public final class SaveDataSetOutputData {
      */
     private final boolean success;
     /**
-     * Human-readable status message about the save.
+     * Status message about the save.
      */
     private final String message;
 
     /**
      * Constructs an output model for the save dataset use case.
-     *
      * @param datasetId the identifier that was requested to save the dataset under.
      * @param success   whether the save operation was successful
-     * @param message    status message describing the save result.
+     * @param message   status message describing the save result.
      */
     public SaveDataSetOutputData(final String datasetId, final boolean success, final String message) {
         this.datasetId = datasetId;
@@ -33,7 +32,6 @@ public final class SaveDataSetOutputData {
 
     /**
      * Returns the dataset identifier that was attempted to be saved.
-     *
      * @return dataset identifier
      */
     public String getDatasetId() {
@@ -42,7 +40,6 @@ public final class SaveDataSetOutputData {
 
     /**
      * Indicates if the save operation completed successfully.
-     *
      * @return true when save succeeded, false otherwise
      */
     public boolean isSuccess() {
@@ -50,8 +47,7 @@ public final class SaveDataSetOutputData {
     }
 
     /**
-     * Returns the human-readable status message describing the save result.
-     *
+     * Returns readable status message describing the save result.
      * @return status message
      */
     public String getMessage() {

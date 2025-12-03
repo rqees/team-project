@@ -6,8 +6,7 @@ package use_case.save_dataset;
 public interface SaveDataSetInputBoundary {
     /**
      * Executes the save dataset use case.
-     *
      * @param inputData input model containing the dataset identifier
      */
-    void execute(final SaveDataSetInputData inputData) throws java.io.IOException;
+    void execute(SaveDataSetInputData inputData) throws java.io.IOException;
 }

@@ -15,18 +15,21 @@ import java.util.List;
 /**
  * Saves a DataSet as a CSV file.
  */
-public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInterface {
+public final class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInterface {
 
+    /**
+     * Root directory where datasets are stored.
+     */
     private final File rootDir;
 
-    public FileSaveDataSetDataAccessObject(String rootDirPath) {
+    public FileSaveDataSetDataAccessObject(final String rootDirPath) {
         this.rootDir = new File(rootDirPath);
         if (!rootDir.exists()) {
             rootDir.mkdirs();
         }
     }
 
-    private File fileFor(String id) {
+    private File fileFor(final String id) {
         File target = new File(id);
 
         if (!target.isAbsolute()) {
@@ -37,7 +40,7 @@ public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInt
             target = new File(target.getParentFile(), target.getName() + ".csv");
         }
 
-        File parent = target.getParentFile();
+        final File parent = target.getParentFile();
         if (parent != null && !parent.exists()) {
             parent.mkdirs();
         }
@@ -46,18 +49,18 @@ public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInt
     }
 
     @Override
-    public void save(String id, DataSet dataSet) throws IOException {
-        File file = fileFor(id);
+    public void save(final String id, final DataSet dataSet) throws IOException {
+        final File file = fileFor(id);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            List<String> headers = new ArrayList<>();
-            for (Column col : dataSet.getColumns()) {
+            final List<String> headers = new ArrayList<>();
+            for (final Column col : dataSet.getColumns()) {
                 headers.add(col.getHeader());
             }
             writer.write(String.join(",", headers));
             writer.newLine();
 
-            for (DataRow row : dataSet.getRows()) {
+            for (final DataRow row : dataSet.getRows()) {
                 writer.write(String.join(",", row.getCells()));
                 writer.newLine();
             }

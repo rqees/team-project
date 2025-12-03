@@ -6,29 +6,35 @@ import java.beans.PropertyChangeSupport;
 /**
  * View model for save dataset results.
  */
-public class SaveDataSetViewModel {
+public final class SaveDataSetViewModel {
+    /**
+     * Supports property change notifications to observers.
+     */
     private final PropertyChangeSupport support = new PropertyChangeSupport(this);
 
+    /**
+     * Latest message about the save attempt.
+     */
     private String message;
     /**
-     * Nullable so the first save result (success or failure) triggers a change event.
+     * First save result (success or failure) triggers a change event.
      */
     private Boolean success;
 
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
+    public void addPropertyChangeListener(final PropertyChangeListener listener) {
         support.addPropertyChangeListener(listener);
     }
 
-    public void setMessage(String message) {
-        String old = this.message;
-        this.message = message;
-        support.firePropertyChange("message", old, message);
+    public void setMessage(final String newMessage) {
+        final String old = this.message;
+        this.message = newMessage;
+        support.firePropertyChange("message", old, newMessage);
     }
 
-    public void setSuccess(boolean success) {
-        Boolean old = this.success;
-        this.success = success;
-        support.firePropertyChange("success", old, Boolean.valueOf(success));
+    public void setSuccess(final boolean newSuccess) {
+        final Boolean old = this.success;
+        this.success = newSuccess;
+        support.firePropertyChange("success", old, Boolean.valueOf(newSuccess));
     }
 
     public String getMessage() {

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class for DisplayTableInteractor.
- * Achieves 100% code coverage.
+ * Achieves 100% line coverage.
  */
 class DisplayTableInteractorTest {
     private FakeTableGateway fakeGateway;

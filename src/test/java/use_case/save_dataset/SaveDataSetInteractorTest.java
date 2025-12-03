@@ -65,6 +65,39 @@ public class SaveDataSetInteractorTest {
         assertEquals("No dataset loaded to save.", fakePresenter.lastOutput.getMessage());
     }
 
+    @Test
+    void execute_nullId_returnsFailureWithoutHittingGateways() throws java.io.IOException {
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(createSampleDataSet());
+        FakeDataAccess fakeDataAccess = new FakeDataAccess();
+        FakePresenter fakePresenter = new FakePresenter();
+        SaveDataSetInteractor interactor = new SaveDataSetInteractor(fakeDataAccess, fakePresenter, fakeCurrentTableGateway);
+
+        interactor.execute(new SaveDataSetInputData(null));
+
+        assertFalse(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should NOT be called for null id");
+        assertFalse(fakeDataAccess.saveCalled, "DataAccess.save should NOT be called for null id");
+        assertNotNull(fakePresenter.lastOutput, "Presenter should have been called");
+        assertFalse(fakePresenter.lastOutput.isSuccess(), "Output should indicate failure");
+        assertEquals("Dataset ID is required.", fakePresenter.lastOutput.getMessage());
+    }
+
+    @Test
+    void execute_dataAccessThrows_propagatesIOException() {
+        DataSet sample = createSampleDataSet();
+        FakeCurrentTableGateway fakeCurrentTableGateway = new FakeCurrentTableGateway(sample);
+        ThrowingDataAccess throwingDataAccess = new ThrowingDataAccess();
+        FakePresenter fakePresenter = new FakePresenter();
+        SaveDataSetInteractor interactor = new SaveDataSetInteractor(throwingDataAccess, fakePresenter, fakeCurrentTableGateway);
+
+        assertThrows(java.io.IOException.class,
+                () -> interactor.execute(new SaveDataSetInputData("bad_path")),
+                "Interactor should propagate IOException from data access");
+
+        assertTrue(fakeCurrentTableGateway.loadCalled, "CurrentTableGateway.load should have been called before failure");
+        assertTrue(throwingDataAccess.saveCalled, "DataAccess.save should have been invoked before throwing");
+        assertNull(fakePresenter.lastOutput, "Presenter should not be called when exception propagates");
+    }
+
     private static class FakeDataAccess implements SaveDataSetDataAccessInterface {
         boolean saveCalled = false;
         String lastId = null;
@@ -75,6 +108,16 @@ public class SaveDataSetInteractorTest {
             saveCalled = true;
             lastId = id;
             lastDataSet = dataSet;
+        }
+    }
+
+    private static class ThrowingDataAccess implements SaveDataSetDataAccessInterface {
+        boolean saveCalled = false;
+
+        @Override
+        public void save(String id, DataSet dataSet) throws java.io.IOException {
+            saveCalled = true;
+            throw new java.io.IOException("disk full");
         }
     }
 

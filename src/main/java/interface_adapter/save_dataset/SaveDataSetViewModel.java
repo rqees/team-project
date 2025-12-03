@@ -10,7 +10,10 @@ public class SaveDataSetViewModel {
     private final PropertyChangeSupport support = new PropertyChangeSupport(this);
 
     private String message;
-    private boolean success;
+    /**
+     * Nullable so the first save result (success or failure) triggers a change event.
+     */
+    private Boolean success;
 
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         support.addPropertyChangeListener(listener);
@@ -23,7 +26,7 @@ public class SaveDataSetViewModel {
     }
 
     public void setSuccess(boolean success) {
-        boolean old = this.success;
+        Boolean old = this.success;
         this.success = success;
         support.firePropertyChange("success", old, success);
     }
@@ -33,6 +36,6 @@ public class SaveDataSetViewModel {
     }
 
     public boolean isSuccess() {
-        return success;
+        return Boolean.TRUE.equals(success);
     }
 }

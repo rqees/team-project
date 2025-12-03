@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Saves a DataSet as a CSV file.
  */
-public class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInterface {
+public final class FileSaveDataSetDataAccessObject implements SaveDataSetDataAccessInterface {
 
     /**
      * Root directory where datasets are stored.

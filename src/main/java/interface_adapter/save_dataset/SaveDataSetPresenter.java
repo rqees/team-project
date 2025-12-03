@@ -6,7 +6,7 @@ import use_case.save_dataset.SaveDataSetOutputData;
 /**
  * Presenter that updates the save view model.
  */
-public class SaveDataSetPresenter implements SaveDataSetOutputBoundary {
+public final class SaveDataSetPresenter implements SaveDataSetOutputBoundary {
 
     /**
      * View model receiving save results.

@@ -6,7 +6,7 @@ import use_case.dataset.CurrentTableGateway;
 /**
  * Interactor that saves the currently loaded dataset through a data access layer.
  */
-public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
+public final class SaveDataSetInteractor implements SaveDataSetInputBoundary {
 
     /**
      * Data access layer used to persist datasets.

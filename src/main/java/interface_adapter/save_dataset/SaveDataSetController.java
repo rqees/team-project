@@ -6,7 +6,7 @@ import use_case.save_dataset.SaveDataSetInputData;
 /**
  * Controller for the save dataset use case, invoked by UI action of clicking the save button.
  */
-public class SaveDataSetController {
+public final class SaveDataSetController {
 
     /**
      * Interactor handling the save dataset use case.

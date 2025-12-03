@@ -6,7 +6,7 @@ import java.beans.PropertyChangeSupport;
 /**
  * View model for save dataset results.
  */
-public class SaveDataSetViewModel {
+public final class SaveDataSetViewModel {
     /**
      * Supports property change notifications to observers.
      */
@@ -25,16 +25,16 @@ public class SaveDataSetViewModel {
         support.addPropertyChangeListener(listener);
     }
 
-    public void setMessage(final String message) {
+    public void setMessage(final String newMessage) {
         final String old = this.message;
-        this.message = message;
-        support.firePropertyChange("message", old, message);
+        this.message = newMessage;
+        support.firePropertyChange("message", old, newMessage);
     }
 
-    public void setSuccess(final boolean success) {
+    public void setSuccess(final boolean newSuccess) {
         final Boolean old = this.success;
-        this.success = success;
-        support.firePropertyChange("success", old, Boolean.valueOf(success));
+        this.success = newSuccess;
+        support.firePropertyChange("success", old, Boolean.valueOf(newSuccess));
     }
 
     public String getMessage() {

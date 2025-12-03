@@ -3,7 +3,7 @@ package use_case.save_dataset;
 /**
  * Input data sent from the controller to the save dataset interactor.
  */
-public class SaveDataSetInputData {
+public final class SaveDataSetInputData {
 
     /**
      * Identifier to save the dataset under.

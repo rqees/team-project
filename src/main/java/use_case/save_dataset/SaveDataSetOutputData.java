@@ -3,7 +3,7 @@ package use_case.save_dataset;
 /**
  * Data returned from the Save Dataset interactor to the presenter.
  */
-public class SaveDataSetOutputData {
+public final class SaveDataSetOutputData {
 
     /**
      * The identifier the dataset was saved under.

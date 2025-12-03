@@ -5,8 +5,17 @@ package use_case.save_dataset;
  */
 public class SaveDataSetOutputData {
 
+    /**
+     * The identifier the dataset was saved under.
+     */
     private final String datasetId;
+    /**
+     * Indicates whether the save operation succeeded.
+     */
     private final boolean success;
+    /**
+     * Human-readable status message about the save.
+     */
     private final String message;
 
     /**
@@ -16,7 +25,7 @@ public class SaveDataSetOutputData {
      * @param success   whether the save operation was successful
      * @param message    status message describing the save result.
      */
-    public SaveDataSetOutputData(String datasetId, boolean success, String message) {
+    public SaveDataSetOutputData(final String datasetId, final boolean success, final String message) {
         this.datasetId = datasetId;
         this.success = success;
         this.message = message;

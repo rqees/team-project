@@ -9,5 +9,5 @@ public interface SaveDataSetOutputBoundary {
      *
      * @param outputData output model describing success/failure
      */
-    void present(SaveDataSetOutputData outputData);
+    void present(final SaveDataSetOutputData outputData);
 }

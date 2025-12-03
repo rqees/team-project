@@ -8,8 +8,17 @@ import use_case.dataset.CurrentTableGateway;
  */
 public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
 
+    /**
+     * Data access layer used to persist datasets.
+     */
     private final SaveDataSetDataAccessInterface dataAccess;
+    /**
+     * Presenter boundary for communicating save results.
+     */
     private final SaveDataSetOutputBoundary outputBoundary;
+    /**
+     * Gateway providing the currently loaded dataset.
+     */
     private final CurrentTableGateway currentTableGateway;
 
     /**
@@ -19,9 +28,9 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
      * @param outputBoundary      presenter used to report save results
      * @param currentTableGateway interface for providing the currently loaded dataset
      */
-    public SaveDataSetInteractor(SaveDataSetDataAccessInterface dataAccess,
-                                 SaveDataSetOutputBoundary outputBoundary,
-                                 CurrentTableGateway currentTableGateway) {
+    public SaveDataSetInteractor(final SaveDataSetDataAccessInterface dataAccess,
+                                 final SaveDataSetOutputBoundary outputBoundary,
+                                 final CurrentTableGateway currentTableGateway) {
         this.dataAccess = dataAccess;
         this.outputBoundary = outputBoundary;
         this.currentTableGateway = currentTableGateway;
@@ -33,8 +42,8 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
      * @param inputData contains the target identifier for the dataset
      */
     @Override
-    public void execute(SaveDataSetInputData inputData) throws java.io.IOException {
-        String id = inputData.getDatasetId();
+    public void execute(final SaveDataSetInputData inputData) throws java.io.IOException {
+        final String id = inputData.getDatasetId();
 
         if (id == null) {
             outputBoundary.present(new SaveDataSetOutputData(
@@ -43,7 +52,7 @@ public class SaveDataSetInteractor implements SaveDataSetInputBoundary {
             return;
         }
 
-        DataSet dataSet = currentTableGateway.load();
+        final DataSet dataSet = currentTableGateway.load();
         if (dataSet == null) {
             outputBoundary.present(new SaveDataSetOutputData(
                     id, false, "No dataset loaded to save."

@@ -8,6 +8,9 @@ import use_case.save_dataset.SaveDataSetInputData;
  */
 public class SaveDataSetController {
 
+    /**
+     * Interactor handling the save dataset use case.
+     */
     private final SaveDataSetInputBoundary interactor;
 
     /**
@@ -15,7 +18,7 @@ public class SaveDataSetController {
      *
      * @param interactor the interactor that performs the save operation
      */
-    public SaveDataSetController(SaveDataSetInputBoundary interactor) {
+    public SaveDataSetController(final SaveDataSetInputBoundary interactor) {
         this.interactor = interactor;
     }
 
@@ -24,8 +27,8 @@ public class SaveDataSetController {
      *
      * @param datasetId name of the saved dataset or path chosen by the user.
      */
-    public void execute(String datasetId) throws java.io.IOException {
-        SaveDataSetInputData inputData = new SaveDataSetInputData(datasetId);
+    public void execute(final String datasetId) throws java.io.IOException {
+        final SaveDataSetInputData inputData = new SaveDataSetInputData(datasetId);
         interactor.execute(inputData);
     }
 }

@@ -5,6 +5,9 @@ package use_case.save_dataset;
  */
 public class SaveDataSetInputData {
 
+    /**
+     * Identifier to save the dataset under.
+     */
     private final String datasetId;
 
     /**
@@ -12,7 +15,7 @@ public class SaveDataSetInputData {
      *
      * @param datasetId identifier to associate with the saved dataset
      */
-    public SaveDataSetInputData(String datasetId) {
+    public SaveDataSetInputData(final String datasetId) {
         this.datasetId = datasetId;
     }
 

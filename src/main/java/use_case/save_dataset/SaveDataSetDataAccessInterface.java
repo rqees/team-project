@@ -12,5 +12,5 @@ public interface SaveDataSetDataAccessInterface {
      * @param id      target identifier or path for the dataset
      * @param dataSet dataset contents to persist
      */
-    void save(String id, DataSet dataSet) throws java.io.IOException;
+    void save(final String id, final DataSet dataSet) throws java.io.IOException;
 }

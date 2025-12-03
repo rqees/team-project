@@ -28,7 +28,7 @@ public class SaveDataSetViewModel {
     public void setSuccess(boolean success) {
         Boolean old = this.success;
         this.success = success;
-        support.firePropertyChange("success", old, success);
+        support.firePropertyChange("success", old, Boolean.valueOf(success));
     }
 
     public String getMessage() {

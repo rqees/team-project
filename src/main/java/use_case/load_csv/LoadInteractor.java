@@ -102,11 +102,8 @@ public class LoadInteractor implements LoadInputBoundary {
                     numDate += 1;
                 }
                 catch (DateTimeParseException ignored) {
+                    numCategorical += 1;
                 }
-            }
-
-            else {
-                numCategorical += 1;
             }
         }
 

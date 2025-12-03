@@ -109,11 +109,8 @@ public class LoadApiInteractor implements LoadApiInputBoundary {
                     numDate += 1;
                 }
                 catch (DateTimeParseException ignored) {
+                    numCategorical += 1;
                 }
-            }
-
-            else {
-                numCategorical += 1;
             }
         }
 

@@ -7,7 +7,6 @@ import entity.DataType;
 import org.junit.jupiter.api.Test;
 import use_case.dataset.CurrentTableGateway;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class LoadAPIInteractorTest {
 
 
-    static class MockPresenter implements LoadAPIOutputBoundary {
+    static class MockPresenter implements LoadApiOutputBoundary {
         boolean successCalled = false;
         boolean failCalled = false;
         String error = null;
@@ -46,7 +45,7 @@ class LoadAPIInteractorTest {
         }
     }
 
-    static class MockAPIGateway implements LoadAPIDataGateway {
+    static class MockAPIGateway implements LoadApiDataGateway {
         String returnValue;
 
         MockAPIGateway(String returnValue) {
@@ -54,7 +53,7 @@ class LoadAPIInteractorTest {
         }
 
         @Override
-        public String getCSV(String datasetName) {
+        public String getCsv(String datasetName) {
             return returnValue;
         }
     }
@@ -67,9 +66,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway("Dataset not found.");
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("anything"));
+        interactor.execute(new LoadApiInputData("anything"));
 
         assertTrue(presenter.failCalled);
         assertEquals("Dataset not found.", presenter.error);
@@ -83,9 +82,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway("Dataset found, but no CSV resource available.");
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("dataset"));
+        interactor.execute(new LoadApiInputData("dataset"));
 
         assertTrue(presenter.failCalled);
         assertEquals("Dataset found, but no CSV resource available.", presenter.error);
@@ -98,9 +97,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway("Error: Timeout");
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("dataset"));
+        interactor.execute(new LoadApiInputData("dataset"));
 
         assertTrue(presenter.failCalled);
         assertEquals("Error: Timeout", presenter.error);
@@ -127,9 +126,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway(csv);
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("dataset"));
+        interactor.execute(new LoadApiInputData("dataset"));
 
         assertTrue(presenter.successCalled);
         assertFalse(presenter.failCalled);
@@ -183,9 +182,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway(csv);
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("dataset"));
+        interactor.execute(new LoadApiInputData("dataset"));
 
         Column col = tableGateway.saved.getColumns().get(0);
 
@@ -204,9 +203,9 @@ class LoadAPIInteractorTest {
         MockGateway tableGateway = new MockGateway();
         MockAPIGateway api = new MockAPIGateway(csv);
 
-        LoadAPIInteractor interactor = new LoadAPIInteractor(presenter, api, tableGateway);
+        LoadApiInteractor interactor = new LoadApiInteractor(presenter, api, tableGateway);
 
-        interactor.execute(new LoadAPIInputData("dataset"));
+        interactor.execute(new LoadApiInputData("dataset"));
 
         DataSet saved = tableGateway.saved;
 

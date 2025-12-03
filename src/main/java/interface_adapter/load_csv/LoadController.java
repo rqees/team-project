@@ -1,14 +1,14 @@
 package interface_adapter.load_csv;
 
-import use_case.load_csv.LoadInputBoundary;
-import use_case.load_csv.LoadInputData;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import use_case.load_csv.LoadInputBoundary;
+import use_case.load_csv.LoadInputData;
 
 public class LoadController {
     private final LoadInputBoundary csvLoadUseCaseInteractor;
@@ -17,19 +17,23 @@ public class LoadController {
         this.csvLoadUseCaseInteractor = csvLoadUseCaseInteractor;
     }
 
+    /**
+     * Executes the use case.
+     * @param file the csv file to be read
+     */
     public void execute(File file) {
-        List<String> lines = new ArrayList<>();
+        final List<String> lines = new ArrayList<>();
         boolean failed;
         String errorMessage;
 
-        String fileName = file.getName();
-        int dotIndex = fileName.lastIndexOf('.');
+        final String fileName = file.getName();
+        final int dotIndex = fileName.lastIndexOf('.');
         String extension = "";
         if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
             extension = fileName.substring(dotIndex + 1);
         }
 
-        if (extension.equals("csv") || extension.equals("txt")) {
+        if ("csv".equals(extension) || "txt".equals(extension)) {
             try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = br.readLine()) != null) {
@@ -43,7 +47,8 @@ public class LoadController {
                     failed = false;
                     errorMessage = "";
                 }
-            } catch (IOException ex) {
+            }
+            catch (IOException ex) {
                 failed = true;
                 errorMessage = ex.getMessage();
             }

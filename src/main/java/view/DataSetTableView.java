@@ -3,8 +3,8 @@ package view;
 import interface_adapter.cleaner.DataCleaningController;
 import interface_adapter.cleaner.DataCleaningState;
 import interface_adapter.cleaner.DataCleaningViewModel;
-import interface_adapter.load_api.LoadAPIController;
-import interface_adapter.load_api.LoadAPIViewModel;
+import interface_adapter.load_api.LoadApiController;
+import interface_adapter.load_api.LoadApiViewModel;
 import interface_adapter.load_csv.LoadController;
 import interface_adapter.load_csv.LoadViewModel;
 import interface_adapter.search.SearchController;
@@ -111,8 +111,8 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
 
     private LoadController loadController;
     private final LoadViewModel loadViewModel;
-    private LoadAPIController loadAPIController;
-    private final LoadAPIViewModel loadAPIViewModel;
+    private LoadApiController loadAPIController;
+    private final LoadApiViewModel loadAPIViewModel;
     private final SaveDataSetViewModel saveViewModel;
     private SaveDataSetController saveController;
 
@@ -163,7 +163,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
     public DataSetTableView(SearchViewModel searchViewModel,
                             TableViewModel tableViewModel,
                             LoadViewModel loadViewModel,
-                            LoadAPIViewModel loadAPIViewModel,
+                            LoadApiViewModel loadAPIViewModel,
                             SaveDataSetViewModel saveViewModel,
                             VisualizationViewModel visualizationViewModel,
                             SummaryStatisticsViewModel statisticsViewModel,
@@ -1908,7 +1908,7 @@ public class DataSetTableView extends JPanel implements PropertyChangeListener {
         this.loadController = loadController;
     }
 
-    public void setLoadAPIController(LoadAPIController loadAPIController) {
+    public void setLoadAPIController(LoadApiController loadAPIController) {
         this.loadAPIController = loadAPIController;
     }
 

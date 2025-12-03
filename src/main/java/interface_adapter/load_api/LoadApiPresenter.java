@@ -1,12 +1,12 @@
 package interface_adapter.load_api;
 
-import use_case.load_api.LoadAPIOutputBoundary;
+import use_case.load_api.LoadApiOutputBoundary;
 
-public class LoadAPIPresenter implements LoadAPIOutputBoundary {
+public class LoadApiPresenter implements LoadApiOutputBoundary {
 
-    private final LoadAPIViewModel viewModel;
+    private final LoadApiViewModel viewModel;
 
-    public LoadAPIPresenter(LoadAPIViewModel viewModel) {
+    public LoadApiPresenter(LoadApiViewModel viewModel) {
         this.viewModel = viewModel;
     }
 

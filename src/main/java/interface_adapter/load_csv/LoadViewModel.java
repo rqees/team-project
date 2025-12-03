@@ -9,18 +9,30 @@ public class LoadViewModel {
 
     private final PropertyChangeSupport support = new PropertyChangeSupport(this);
 
-    public void addPropertyChangeListener(PropertyChangeListener l) {
-        support.addPropertyChangeListener(l);
+    /**
+     * Adds a listener to the view model.
+     * @param listener PropertyChangeListener
+     */
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        support.addPropertyChangeListener(listener);
     }
 
+    /**
+     * Changes the error message and fires a property change.
+     * @param errorMessage the error that occurred
+     */
     public void setErrorMessage(String errorMessage) {
-        String old = this.errorMessage;
+        final String old = this.errorMessage;
         this.errorMessage = errorMessage;
         support.firePropertyChange("errorMessage", old, errorMessage);
     }
 
+    /**
+     * Changes the success field and fires a property change.
+     * @param success whether the interactor succeeded
+     */
     public void setSuccess(boolean success) {
-        boolean old = this.success;
+        final boolean old = this.success;
         this.success = success;
         support.firePropertyChange("success", old, success);
     }

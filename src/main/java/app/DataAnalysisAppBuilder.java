@@ -2,9 +2,9 @@ package app;
 
 import data_access.*;
 import interface_adapter.ViewManagerModel;
-import interface_adapter.load_api.LoadAPIController;
-import interface_adapter.load_api.LoadAPIPresenter;
-import interface_adapter.load_api.LoadAPIViewModel;
+import interface_adapter.load_api.LoadApiController;
+import interface_adapter.load_api.LoadApiPresenter;
+import interface_adapter.load_api.LoadApiViewModel;
 import interface_adapter.load_csv.LoadController;
 import interface_adapter.load_csv.LoadPresenter;
 import interface_adapter.load_csv.LoadViewModel;
@@ -21,10 +21,10 @@ import interface_adapter.cleaner.DataCleaningController;
 import interface_adapter.cleaner.DataCleaningPresenter;
 import interface_adapter.cleaner.DataCleaningViewModel;
 import use_case.dataset.CurrentTableGateway;
-import use_case.load_api.LoadAPIDataGateway;
-import use_case.load_api.LoadAPIInputBoundary;
-import use_case.load_api.LoadAPIInteractor;
-import use_case.load_api.LoadAPIOutputBoundary;
+import use_case.load_api.LoadApiDataGateway;
+import use_case.load_api.LoadApiInputBoundary;
+import use_case.load_api.LoadApiInteractor;
+import use_case.load_api.LoadApiOutputBoundary;
 import use_case.load_csv.LoadInputBoundary;
 import use_case.load_csv.LoadInteractor;
 import use_case.load_csv.LoadOutputBoundary;
@@ -75,13 +75,13 @@ public class DataAnalysisAppBuilder {
     private SearchViewModel searchViewModel;
     private TableViewModel tableViewModel;
     private LoadViewModel loadViewModel;
-    private LoadAPIViewModel loadAPIViewModel;
+    private LoadApiViewModel loadAPIViewModel;
     private SaveDataSetViewModel saveDataSetViewModel;
     private VisualizationViewModel visualizationViewModel;
     private DataCleaningViewModel dataCleaningViewModel;
 
     private final CurrentTableGateway tableGateway = new InMemoryTableGateway();
-    private final LoadAPIDataGateway loadAPIDataGateway = new APIDataAccessObject();
+    private final LoadApiDataGateway loadAPIDataGateway = new ApiDataAccessObject();
 
     private final DataSubsetGateway dataSubsetGateway;
     private final SummaryReportGateway summaryReportGateway;
@@ -101,7 +101,7 @@ public class DataAnalysisAppBuilder {
         searchViewModel = new SearchViewModel();
         tableViewModel = new TableViewModel();
         loadViewModel = new LoadViewModel();
-        loadAPIViewModel = new LoadAPIViewModel();
+        loadAPIViewModel = new LoadApiViewModel();
         saveDataSetViewModel = new SaveDataSetViewModel();
         visualizationViewModel = new VisualizationViewModel();
         statisticsViewModel = new SummaryStatisticsViewModel();
@@ -145,9 +145,9 @@ public class DataAnalysisAppBuilder {
         final LoadInputBoundary loadInteractor = new LoadInteractor(loadOutputBoundary, tableGateway);
         LoadController loadController = new LoadController(loadInteractor);
         dataSetTableView.setLoadController(loadController);
-        final LoadAPIOutputBoundary loadAPIOutputBoundary = new LoadAPIPresenter(loadAPIViewModel);
-        final LoadAPIInputBoundary loadAPIInteractor = new LoadAPIInteractor(loadAPIOutputBoundary, loadAPIDataGateway, tableGateway);
-        LoadAPIController loadAPIController = new LoadAPIController(loadAPIInteractor);
+        final LoadApiOutputBoundary loadAPIOutputBoundary = new LoadApiPresenter(loadAPIViewModel);
+        final LoadApiInputBoundary loadAPIInteractor = new LoadApiInteractor(loadAPIOutputBoundary, loadAPIDataGateway, tableGateway);
+        LoadApiController loadAPIController = new LoadApiController(loadAPIInteractor);
         dataSetTableView.setLoadAPIController(loadAPIController);
         return this;
     }

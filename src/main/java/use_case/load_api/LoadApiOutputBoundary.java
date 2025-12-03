@@ -1,6 +1,6 @@
-package use_case.load_csv;
+package use_case.load_api;
 
-public interface LoadOutputBoundary {
+public interface LoadApiOutputBoundary {
     /**
      * Prepares to update the view model with a failure.
      * @param errorMessage error message

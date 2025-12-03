@@ -1,11 +1,5 @@
 package use_case.load_api;
 
-import entity.Column;
-import entity.DataRow;
-import entity.DataSet;
-import entity.DataType;
-import use_case.dataset.CurrentTableGateway;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -13,68 +7,78 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class LoadAPIInteractor implements LoadAPIInputBoundary {
-    private final LoadAPIOutputBoundary loadAPIPresenter;
-    private final LoadAPIDataGateway loadAPIDataGateway;
+import entity.Column;
+import entity.DataRow;
+import entity.DataSet;
+import entity.DataType;
+import use_case.dataset.CurrentTableGateway;
+
+public class LoadApiInteractor implements LoadApiInputBoundary {
+    private final LoadApiOutputBoundary loadApiPresenter;
+    private final LoadApiDataGateway loadApiDataGateway;
     private final CurrentTableGateway tableGateway;
 
-    public LoadAPIInteractor(LoadAPIOutputBoundary loadAPIPresenter,
-                             LoadAPIDataGateway loadAPIDataGateway,
+    public LoadApiInteractor(LoadApiOutputBoundary loadApiPresenter,
+                             LoadApiDataGateway loadApiDataGateway,
                              CurrentTableGateway tableGateway) {
-        this.loadAPIPresenter = loadAPIPresenter;
-        this.loadAPIDataGateway = loadAPIDataGateway;
+        this.loadApiPresenter = loadApiPresenter;
+        this.loadApiDataGateway = loadApiDataGateway;
         this.tableGateway = tableGateway;
     }
 
     @Override
-    public void execute(LoadAPIInputData loadAPIInputData){
-        String csv = loadAPIDataGateway.getCSV(loadAPIInputData.getDatasetName());
-        if (csv.equals("Dataset not found.") || csv.equals("Dataset found, but no CSV resource available.") || csv.startsWith("Error: ")) {
-            loadAPIPresenter.prepareFail(csv);
+    public void execute(LoadApiInputData loadApiInputData) {
+        final String csv = loadApiDataGateway.getCsv(loadApiInputData.getDatasetName());
+        if ("Dataset not found.".equals(csv)
+                || "Dataset found, but no CSV resource available.".equals(csv)
+                || csv.startsWith("Error: ")) {
+            loadApiPresenter.prepareFail(csv);
         }
         else {
-            List<String> lines = new ArrayList<>(List.of(csv.split("\n", -1)));
-            List<Column> columns = getColumns(lines);
-            List<DataRow> rows = getRows(lines);
-            DataSet table = new DataSet(rows, columns);
+            final List<String> lines = new ArrayList<>(List.of(csv.split("\n", -1)));
+            final List<Column> columns = getColumns(lines);
+            final List<DataRow> rows = getRows(lines);
+            final DataSet table = new DataSet(rows, columns);
 
             tableGateway.save(table);
-            loadAPIPresenter.prepareSuccess();
+            loadApiPresenter.prepareSuccess();
         }
     }
 
     private static List<Column> getColumns(List<String> lines) {
+        final String delimiter = ",";
         int columnCount = 0;
         for (String line : lines) {
-            String[] cells = line.split(",", -1);
+            final String[] cells = line.split(delimiter, -1);
             if (cells.length > columnCount) {
                 columnCount = cells.length;
             }
         }
 
-        List<List<String>> columnCells = new ArrayList<>();
+        final List<List<String>> columnCells = new ArrayList<>();
         for (int i = 0; i < columnCount; i++) {
             columnCells.add(new ArrayList<>());
         }
 
-        String[] headers = lines.get(0).split(",", -1);
+        final String[] headers = lines.get(0).split(delimiter, -1);
         lines.remove(0);
 
         for (String line : lines) {
-            String[] cells = line.split(",", -1);
+            final String[] cells = line.split(delimiter, -1);
             for (int i = 0; i < columnCount; i++) {
                 if (i < cells.length) {
                     columnCells.get(i).add(cells[i]);
-                } else {
+                }
+                else {
                     columnCells.get(i).add("");
                 }
             }
         }
 
         // Create Column objects with guessed datatype
-        List<Column> columns = new ArrayList<>();
-        for (int i = 0; i < headers.length; i++){
-            DataType type = guessDataType(columnCells.get(i));
+        final List<Column> columns = new ArrayList<>();
+        for (int i = 0; i < headers.length; i++) {
+            final DataType type = guessDataType(columnCells.get(i));
             columns.add(new Column(columnCells.get(i), type, headers[i]));
         }
         return columns;
@@ -86,16 +90,16 @@ public class LoadAPIInteractor implements LoadAPIInputBoundary {
         int numDate = 0;
         int numCategorical = 0;
 
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for (String cell : cells) {
-            String value = cell.trim();
+            final String value = cell.trim();
 
             if (value.matches("-?\\d+(\\.\\d+)?")) {
                 numNumeric += 1;
             }
 
-            else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+            else if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
                 numBoolean += 1;
             }
 
@@ -103,18 +107,17 @@ public class LoadAPIInteractor implements LoadAPIInputBoundary {
                 try {
                     LocalDate.parse(value, dateFormatter);
                     numDate += 1;
-                } catch (DateTimeParseException ignored) {}
-            }
-
-            else {
-                numCategorical += 1;
+                }
+                catch (DateTimeParseException ignored) {
+                    numCategorical += 1;
+                }
             }
         }
 
         if (numNumeric >= numBoolean && numNumeric >= numDate && numNumeric >= numCategorical) {
             return DataType.NUMERIC;
         }
-        if (numBoolean >= numDate &&  numBoolean >= numCategorical) {
+        if (numBoolean >= numDate && numBoolean >= numCategorical) {
             return DataType.BOOLEAN;
         }
         if (numDate >= numCategorical) {
@@ -124,9 +127,9 @@ public class LoadAPIInteractor implements LoadAPIInputBoundary {
     }
 
     private static List<DataRow> getRows(List<String> lines) {
-        List<DataRow> rows = new ArrayList<>();
+        final List<DataRow> rows = new ArrayList<>();
         for (String line : lines) {
-            List<String> cells = Arrays.asList(line.split(",", -1));
+            final List<String> cells = Arrays.asList(line.split(",", -1));
             rows.add(new DataRow(cells));
         }
         return rows;

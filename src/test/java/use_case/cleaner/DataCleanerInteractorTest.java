@@ -311,8 +311,8 @@ class DataCleanerInteractorTest {
 
 
         // Assert
-        assertTrue(fakePresenter.headerEditCalled);
-        assertFalse(fakePresenter.headerEditFailureCalled);
+        assertFalse(fakePresenter.headerEditCalled);
+        assertTrue(fakePresenter.headerEditFailureCalled);
     }
 
 

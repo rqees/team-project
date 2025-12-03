@@ -1,34 +1,31 @@
 package use_case.cleaner;
 
-import entity.DataSet;
-import entity.DataRow;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import entity.Column;
+import entity.DataRow;
+import entity.DataSet;
 import entity.DataType;
 import entity.MissingCell;
-
-import use_case.dataset.CurrentTableGateway;
-
 import use_case.cleaner.validators.BooleanValidator;
 import use_case.cleaner.validators.CategoricalValidator;
 import use_case.cleaner.validators.DataTypeValidator;
 import use_case.cleaner.validators.DateValidator;
 import use_case.cleaner.validators.NumericValidator;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.EnumMap;
-import java.util.Map;
+import use_case.dataset.CurrentTableGateway;
 
 /**
  * Use case 3: cleaning and validating a DataSet.
- *
  * - Edit individual cells while enforcing column DataType constraints.
  * - Treat missing or corrupted values as {@code null}.
  * - Provide a log of all cells that were changed to {@code null}.
  */
-public class DataCleanerInteractor implements DataCleaningInputBoundary{
+public class DataCleanerInteractor implements DataCleaningInputBoundary {
 
     private final CurrentTableGateway tableGateway;
     private final DataCleaningOutputBoundary presenter;
@@ -45,7 +42,7 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
 
     // helper to always get the current DataSet
     private DataSet requireCurrentDataSet() {
-        DataSet dataSet = tableGateway.load();
+        final DataSet dataSet = tableGateway.load();
         if (dataSet == null) {
             throw new IllegalStateException("No current dataset is loaded.");
         }
@@ -55,21 +52,21 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
     // Input boundary methods---------------
     @Override
     public void cleanEditedCell(DataCleaningInputData.EditedCellInputData inputData) {
-        DataSet dataSet = requireCurrentDataSet();
+        final DataSet dataSet = requireCurrentDataSet();
 
-        int rowIndex = inputData.getRowIndex();
-        int colIndex = inputData.getColIndex();
-        String rawValue = inputData.getRawValue();
+        final int rowIndex = inputData.getRowIndex();
+        final int colIndex = inputData.getColIndex();
+        final String rawValue = inputData.getRawValue();
 
         // 1. clean the value using existing logic
-        String cleanedValue = cleanValueForColumn(dataSet, colIndex, rawValue);
+        final String cleanedValue = cleanValueForColumn(dataSet, colIndex, rawValue);
 
         // 2. update the entity (DataSet)
         dataSet.setCell(cleanedValue, rowIndex, colIndex);
         tableGateway.save(dataSet);
 
         // 3. build output data and send to presenter
-        DataCleaningOutputData.EditedCellOutputData outputData =
+        final DataCleaningOutputData.EditedCellOutputData outputData =
                 new DataCleaningOutputData.EditedCellOutputData(
                         rowIndex, colIndex, cleanedValue
                 );
@@ -79,42 +76,41 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
 
     @Override
     public void editHeader(DataCleaningInputData.HeaderEditInputData inputData) {
-        DataSet dataSet = requireCurrentDataSet();
+        final DataSet dataSet = requireCurrentDataSet();
 
-        int colIndex = inputData.getColIndex();
-        String newHeader = inputData.getNewHeader();
+        final int colIndex = inputData.getColIndex();
+        final String newHeader = inputData.getNewHeader();
 
         try {
             // use helper that contains header logic
             editHeaderInternal(dataSet, newHeader, colIndex);
             tableGateway.save(dataSet);
 
-            DataCleaningOutputData.HeaderEditOutputData outputData =
+            final DataCleaningOutputData.HeaderEditOutputData outputData =
                     new DataCleaningOutputData.HeaderEditOutputData(colIndex, newHeader);
 
             presenter.presentHeaderEdit(outputData);
-        } catch (IllegalArgumentException e) {
+        }
+        catch (IllegalArgumentException err) {
             // report by output boundary
-            presenter.presentHeaderEditFailure(e.getMessage());
+            presenter.presentHeaderEditFailure(err.getMessage());
         }
     }
 
     @Override
     public void cleanEntireDataSet() {
-        DataSet dataSet = requireCurrentDataSet();
+        final DataSet dataSet = requireCurrentDataSet();
 
         // use old cleanDataSet logic
-        List<MissingCell> changedToNull = cleanDataSetInternal(dataSet);
+        final List<MissingCell> changedToNull = cleanDataSetInternal(dataSet);
         tableGateway.save(dataSet);
 
-        DataCleaningOutputData.CleanEntireDataSetOutputData outputData =
+        final DataCleaningOutputData.CleanEntireDataSetOutputData outputData =
                 new DataCleaningOutputData.CleanEntireDataSetOutputData(changedToNull);
 
         // send to presenter
         presenter.presentEntireDataSetCleaned(outputData);
     }
-
-
 
     // initialize validators to validate the data
     private void initializeValidators() {
@@ -127,45 +123,42 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
     /**
      * Scan the whole dataset and set to null for any cells whose value
      * does not match that column's DataType.
-     *
+     * @param dataSet the current dataSet being edited
      * @return list of locations that were cleared using header
      */
     private List<MissingCell> cleanDataSetInternal(DataSet dataSet) {
-        List<MissingCell> changedToNull = new ArrayList<>();
+        final List<MissingCell> changedToNull = new ArrayList<>();
 
-        List<DataRow> rows = dataSet.getRows();
-        List<Column> columns = dataSet.getColumns();
+        final List<DataRow> rows = dataSet.getRows();
+        final List<Column> columns = dataSet.getColumns();
 
         for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
-            DataRow row = rows.get(rowIndex);
-            List<String> cells = row.getCells();
+            final DataRow row = rows.get(rowIndex);
+            final List<String> cells = row.getCells();
 
             for (int colIndex = 0; colIndex < cells.size(); colIndex++) {
-                String originalValue = cells.get(colIndex);
+                final String originalValue = cells.get(colIndex);
 
-                String cleanValue = cleanValueForColumn(dataSet, colIndex, originalValue);
+                final String cleanValue = cleanValueForColumn(dataSet, colIndex, originalValue);
 
                 dataSet.setCell(cleanValue, rowIndex, colIndex);
 
                 // check if changed to null
                 if (!isMissing(originalValue) && cleanValue == null) {
                     // add to the list
-                    String header = columns.get(colIndex).getHeader();
+                    final String header = columns.get(colIndex).getHeader();
                     changedToNull.add(new MissingCell(rowIndex, header));
                 }
-
-
             }
         }
 
         return changedToNull;
     }
 
-
     // Edit a column header
     // check if new header is null or duplicate
     // if true, throw exception
-    private void editHeaderInternal(DataSet dataSet, String newHeader, int colIndex){
+    private void editHeaderInternal(DataSet dataSet, String newHeader, int colIndex) {
         rebuildUniqueHeaders(dataSet);
 
         // check if null
@@ -174,16 +167,12 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
         }
 
         // case-insensitive
-        String cleanNewHeader = newHeader.trim().toLowerCase();
-        String oldHeader = dataSet.getColumns().get(colIndex).getHeader();
-        String cleanOld = oldHeader.trim().toLowerCase();
+        final String cleanNewHeader = newHeader.trim().toLowerCase();
+        final String oldHeader = dataSet.getColumns().get(colIndex).getHeader();
+        final String cleanOld = oldHeader.trim().toLowerCase();
 
-        // no change
-        if (cleanNewHeader.equals(cleanOld)) {
-            return;
-        }
         // check duplicate
-        else if (uniqueHeaders.contains(cleanNewHeader)) {
+        if (uniqueHeaders.contains(cleanNewHeader)) {
             throw new IllegalArgumentException("Header already exists");
         }
 
@@ -192,17 +181,18 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
         uniqueHeaders.add(cleanNewHeader);
 
         dataSet.getColumns().get(colIndex).setHeader(newHeader);
+
     }
 
     // helper to rebuild UniqueHeaders each time
     private void rebuildUniqueHeaders(DataSet dataSet) {
         uniqueHeaders.clear();
         for (Column column : dataSet.getColumns()) {
-            String header = column.getHeader();
+            final String header = column.getHeader();
             if (header == null) {
                 throw new IllegalArgumentException("Column header cannot be null.");
             }
-            String cleanHeader = header.trim().toLowerCase();
+            final String cleanHeader = header.trim().toLowerCase();
             if (uniqueHeaders.contains(cleanHeader)) {
                 throw new IllegalArgumentException("Column header already exists.");
             }
@@ -210,26 +200,29 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
         }
     }
 
-    // find missing cells and return it as a log
+    /**
+     * Find missing cells and return it as a log.
+     * @return list (rowIndex, columnHeader) of all null cells
+     **/
     public List<MissingCell> findMissingCells() {
-        DataSet dataSet = requireCurrentDataSet();
+        final DataSet dataSet = requireCurrentDataSet();
 
-        List<MissingCell> missingCells = new ArrayList<>();
+        final List<MissingCell> missingCells = new ArrayList<>();
 
-        List<DataRow> rows = dataSet.getRows();
-        List<Column> columns = dataSet.getColumns();
+        final List<DataRow> rows = dataSet.getRows();
+        final List<Column> columns = dataSet.getColumns();
 
         List<String> cells;
 
-        for(int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
-            DataRow row = rows.get(rowIndex);
+        for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+            final DataRow row = rows.get(rowIndex);
             cells = row.getCells();
 
-            for(int colIndex = 0; colIndex < cells.size(); colIndex++) {
-                String value = cells.get(colIndex);
+            for (int colIndex = 0; colIndex < cells.size(); colIndex++) {
+                final String value = cells.get(colIndex);
 
-                if(isMissing(value)) {
-                    String header = columns.get(colIndex).getHeader();
+                if (isMissing(value)) {
+                    final String header = columns.get(colIndex).getHeader();
                     missingCells.add(new MissingCell(rowIndex, header));
                 }
             }
@@ -239,50 +232,45 @@ public class DataCleanerInteractor implements DataCleaningInputBoundary{
     }
 
     // helper to identify missing cells
-    private boolean isMissing(String s) {
-        return s == null || s.isBlank();
+    private boolean isMissing(String str) {
+        return str == null || str.isBlank();
     }
-
 
     /**
      * Clean the given raw value for the column at the given index.
      * - If the value is null or blank -> returns null.
      * - If the value is non-blank but fails validation -> returns null.
      * - If it passes validation -> returns the trimmed value.
+     * @param dataSet the current dataSet on program
+     * @param columnIndex int index for the column that is being checked
+     * @param newValue ne value user give to cell
+     * @return cleaned String if valid, Null if invalid,
      */
     public String cleanValueForColumn(DataSet dataSet, int columnIndex, String newValue) {
-        if (newValue == null) {
-            return null;
+        String result = null;
+
+        if (newValue != null) {
+
+            final String trimmed = newValue.trim();
+
+            if (!trimmed.isEmpty()) {
+                // get correct validator for the column
+                final DataTypeValidator validator = getValidatorForColumn(dataSet, columnIndex);
+                final boolean valid = validator.isValid(trimmed);
+
+                if (valid) {
+                    // invalid values are saved as null
+                    result = trimmed;
+                }
+            }
         }
-
-        String trimmed = newValue.trim();
-        if (trimmed.isEmpty()) {
-            // treat blank as missing
-            return null;
-        }
-
-        // get correct validator for the column
-        DataTypeValidator validator = getValidatorForColumn(dataSet, columnIndex);
-        boolean valid = validator.isValid(trimmed);
-
-        if (!valid) {
-            // invalid values are saved as null
-            return null;
-        }
-
-        // valid value: keep the trimmed string
-        return trimmed;
+        return result;
     }
 
     // helper to get right validator for allowed data type
     private DataTypeValidator getValidatorForColumn(DataSet dataSet, int columnIndex) {
-        DataType type = dataSet.getColumns().get(columnIndex).getDataType();
-        DataTypeValidator validator = validators.get(type);
-
-        if (validator == null) {
-            throw new IllegalStateException(
-                    "No validator configured for data type: " + type);
-        }
+        final DataType type = dataSet.getColumns().get(columnIndex).getDataType();
+        final DataTypeValidator validator = validators.get(type);
 
         return validator;
     }

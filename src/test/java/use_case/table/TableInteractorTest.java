@@ -3,7 +3,6 @@ package use_case.table;
 import entity.Column;
 import entity.DataRow;
 import entity.DataSet;
-import entity.DataType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import use_case.dataset.CurrentTableGateway;

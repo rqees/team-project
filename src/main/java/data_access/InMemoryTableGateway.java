@@ -7,8 +7,8 @@ public class InMemoryTableGateway implements CurrentTableGateway {
     private DataSet table;
 
     @Override
-    public void save(DataSet table) {
-        this.table = table;
+    public void save(DataSet table_data) {
+        this.table = table_data;
     }
 
     @Override

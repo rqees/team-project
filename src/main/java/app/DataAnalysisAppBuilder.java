@@ -17,6 +17,9 @@ import interface_adapter.save_dataset.SaveDataSetViewModel;
 import interface_adapter.table.TableController;
 import interface_adapter.table.TablePresenter;
 import interface_adapter.table.TableViewModel;
+import interface_adapter.cleaner.DataCleaningController;
+import interface_adapter.cleaner.DataCleaningPresenter;
+import interface_adapter.cleaner.DataCleaningViewModel;
 import use_case.dataset.CurrentTableGateway;
 import use_case.load_api.LoadAPIDataGateway;
 import use_case.load_api.LoadAPIInputBoundary;
@@ -34,6 +37,10 @@ import use_case.save_dataset.SaveDataSetInteractor;
 import use_case.save_dataset.SaveDataSetOutputBoundary;
 import use_case.table.DisplayTableInputBoundary;
 import use_case.table.DisplayTableInteractor;
+import use_case.cleaner.DataCleaningInputBoundary;
+import use_case.cleaner.DataCleaningOutputBoundary;
+import use_case.cleaner.DataCleanerInteractor;
+
 import view.DataSetTableView;
 
 import javax.swing.*;
@@ -70,8 +77,8 @@ public class DataAnalysisAppBuilder {
     private LoadViewModel loadViewModel;
     private LoadAPIViewModel loadAPIViewModel;
     private SaveDataSetViewModel saveDataSetViewModel;
-
     private VisualizationViewModel visualizationViewModel;
+    private DataCleaningViewModel dataCleaningViewModel;
 
     private final CurrentTableGateway tableGateway = new InMemoryTableGateway();
     private final LoadAPIDataGateway loadAPIDataGateway = new APIDataAccessObject();
@@ -98,6 +105,7 @@ public class DataAnalysisAppBuilder {
         saveDataSetViewModel = new SaveDataSetViewModel();
         visualizationViewModel = new VisualizationViewModel();
         statisticsViewModel = new SummaryStatisticsViewModel();
+        dataCleaningViewModel = new DataCleaningViewModel();
         dataSetTableView = new DataSetTableView(
                 searchViewModel,
                 tableViewModel,
@@ -105,7 +113,8 @@ public class DataAnalysisAppBuilder {
                 loadAPIViewModel,
                 saveDataSetViewModel,
                 visualizationViewModel,
-                statisticsViewModel
+                statisticsViewModel,
+                dataCleaningViewModel
         );
         cardPanel.add(dataSetTableView, dataSetTableView.getViewName());
         return this;
@@ -214,6 +223,31 @@ public class DataAnalysisAppBuilder {
                 new SummaryStatisticsController(statisticsInteractor);
 
         dataSetTableView.setStatisticsController(statisticsController);
+        return this;
+    }
+
+    /**
+     * Wires the Data Cleaning use case (Use Case 3):
+     *  - DataCleanerInteractor
+     *  - DataCleaningPresenter
+     *  - DataCleaningController
+     */
+    public DataAnalysisAppBuilder addDataCleaningUseCase() {
+        // Create presenter
+        DataCleaningOutputBoundary dataCleaningPresenter =
+                new DataCleaningPresenter(dataCleaningViewModel);
+
+        // Create interactor with tableGateway and presenter
+        DataCleaningInputBoundary dataCleaningInteractor =
+                new DataCleanerInteractor(tableGateway, dataCleaningPresenter);
+
+        // Create controller
+        DataCleaningController dataCleaningController =
+                new DataCleaningController(dataCleaningInteractor);
+
+        // Set controller in view
+        dataSetTableView.setDataCleaningController(dataCleaningController);
+
         return this;
     }
 

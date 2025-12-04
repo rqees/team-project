@@ -11,8 +11,12 @@ public class SummaryStatisticsViewModel {
     private final PropertyChangeSupport support = new PropertyChangeSupport(this);
     private SummaryStatisticsState state = new SummaryStatisticsState();
 
+    /**
+     * state for summary stats.
+     * @param state the state
+     */
     public void setState(SummaryStatisticsState state) {
-        SummaryStatisticsState oldState = this.state;
+        final SummaryStatisticsState oldState = this.state;
         this.state = state;
         support.firePropertyChange("state", oldState, state);
     }

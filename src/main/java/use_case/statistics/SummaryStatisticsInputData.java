@@ -1,8 +1,8 @@
 package use_case.statistics;
 
-import entity.DataSubsetSpec;
-
 import java.util.List;
+
+import entity.DataSubsetSpec;
 
 /**
  * Input data for the Summary Statistics Use Case.
@@ -23,24 +23,28 @@ public class SummaryStatisticsInputData {
      * @throws IllegalArgumentException if any required parameter is null or invalid
      */
     public SummaryStatisticsInputData(
-            int dataSubsetId,
-            String reportName,
-            String datasetId,
-            List<String> columnNames,
-            List<Integer> rowIndices) {
+            final int dataSubsetId,
+            final String reportName,
+            final String datasetId,
+            final List<String> columnNames,
+            final List<Integer> rowIndices) {
 
         // Validation
         if (reportName == null || reportName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Report name cannot be null or empty");
+            throw new IllegalArgumentException(
+                    "Report name cannot be null or empty");
         }
         if (datasetId == null || datasetId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Dataset ID cannot be empty");
+            throw new IllegalArgumentException(
+                    "Dataset ID cannot be empty");
         }
         if (columnNames == null || columnNames.isEmpty()) {
-            throw new IllegalArgumentException("Column names cannot be empty");
+            throw new IllegalArgumentException(
+                    "Column names cannot be empty");
         }
         if (rowIndices == null || rowIndices.isEmpty()) {
-            throw new IllegalArgumentException("Row indices cannot be empty");
+            throw new IllegalArgumentException(
+                    "Row indices cannot be empty");
         }
 
         this.dataSubsetId = dataSubsetId;

@@ -1,13 +1,13 @@
 package interface_adapter.statistics;
 
-import use_case.statistics.SummaryStatisticsOutputBoundary;
-import use_case.statistics.SummaryStatisticsOutputData;
-
 import java.text.DecimalFormat;
 import java.util.*;
 
+import use_case.statistics.SummaryStatisticsOutputBoundary;
+import use_case.statistics.SummaryStatisticsOutputData;
+
 /**
- * Presenter for Summary Statistics
+ * Presenter for Summary Statistics.
  */
 public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBoundary {
 
@@ -25,7 +25,7 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
             // OutputData contains only primitives - no entities!
 
             // Create new state
-            SummaryStatisticsState state = new SummaryStatisticsState();
+            final SummaryStatisticsState state = new SummaryStatisticsState();
             state.setReportName(outputData.getReportName());
             state.setDatasetDescription(buildDatasetDescription(
                     outputData.getDatasetId(),
@@ -36,7 +36,7 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
             state.setErrorMessage(null);
 
             // Format metrics for display
-            Map<String, SummaryStatisticsState.ColumnStatistics> columnStats =
+            final Map<String, SummaryStatisticsState.ColumnStatistics> columnStats =
                     formatColumnStatistics(outputData.getColumnMetrics());
 
             state.setColumnStats(columnStats);
@@ -51,7 +51,7 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
 
     @Override
     public void prepareFailView(String errorMessage) {
-        SummaryStatisticsState state = new SummaryStatisticsState();
+        final SummaryStatisticsState state = new SummaryStatisticsState();
         state.setErrorMessage(errorMessage);
         state.setCalculating(false);
         viewModel.setState(state);
@@ -61,7 +61,7 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
      * Sets the calculating state.
      */
     public void prepareCalculatingView() {
-        SummaryStatisticsState state = new SummaryStatisticsState(viewModel.getState());
+        final SummaryStatisticsState state = new SummaryStatisticsState(viewModel.getState());
         state.setCalculating(true);
         state.setErrorMessage(null);
         viewModel.setState(state);
@@ -69,6 +69,10 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
 
     /**
      * Builds dataset description from primitive data.
+     * @return String description.
+     * @param datasetId datasetId
+     * @param numColumns numeric columns
+     * @param numRows numeric rows
      */
     private String buildDatasetDescription(String datasetId, int numColumns, int numRows) {
         return String.format("Dataset: %s (%d columns, %d rows)",
@@ -77,16 +81,18 @@ public class SummaryStatisticsPresenter implements SummaryStatisticsOutputBounda
 
     /**
      * Formats column metrics from primitive data into view-ready format.
+     * @return Map
+     * @param columnMetricsData metric data
      */
     private Map<String, SummaryStatisticsState.ColumnStatistics> formatColumnStatistics(
             Map<String, SummaryStatisticsOutputData.ColumnMetricsData> columnMetricsData) {
 
-        Map<String, SummaryStatisticsState.ColumnStatistics> result = new LinkedHashMap<>();
+        final Map<String, SummaryStatisticsState.ColumnStatistics> result = new LinkedHashMap<>();
 
         for (Map.Entry<String, SummaryStatisticsOutputData.ColumnMetricsData> entry :
                 columnMetricsData.entrySet()) {
 
-            String columnName = entry.getKey();
+            final String columnName = entry.getKey();
             SummaryStatisticsOutputData.ColumnMetricsData data = entry.getValue();
 
             // Format all values for display - all primitives!
